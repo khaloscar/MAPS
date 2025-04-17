@@ -1,0 +1,154 @@
+import speasy as spz
+from speasy import amda
+amda_tree = spz.inventories.tree.amda
+import pandas as pd
+import datetime as dt
+from dateutil.relativedelta import relativedelta
+import os
+from matplotlib import pyplot as plt
+
+
+def save_data(amda_dir, start_date_arg=None, stop_date_arg=None):
+
+    save_dir = "Saved_data/"
+
+    # Checking if Save_dir exists, else create
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    # Just get the data and save it, preferrably whole thingy
+    # Able to handle pathing in amda tree
+
+    for dir in amda_dir:
+        dataset_name = dir.xmlid
+        if start_date_arg is not None and stop_date_arg is not None:
+            start_date, stop_date = start_date_arg, stop_date_arg
+
+            start_date_str = start_date.strftime("%Y%m%d")
+            stop_date_str = stop_date.strftime("%Y%m%d")
+            file_name = f"{dataset_name}_{start_date_str}-{stop_date_str}.parquet"
+            file_path = os.path.join(save_dir, file_name)
+        else:
+            start_date = pd.to_datetime(dir.start_date)
+            stop_date = pd.to_datetime(dir.stop_date)
+
+            start_date_str = start_date.strftime("%Y%m%d")
+            stop_date_str = stop_date.strftime("%Y%m%d")
+            file_name = f"{dataset_name}_full.parquet"
+            file_path = os.path.join(save_dir, file_name)
+
+        print(f'Saving data for {dataset_name}...')
+        bool_file_present = check_if_already_saved(file_path)
+
+        if not bool_file_present:
+            print('Generating yearly time chunks...\n')
+            print(f'From: {start_date}')
+            print(f'To: {stop_date}')
+
+            # Lets Just generate all the years:
+            # Loop yearly from start_date to stop_date
+            current_yr = start_date.year
+            yrs =[start_date]
+            while current_yr < stop_date.year:
+                next_year = pd.to_datetime(f"{current_yr + 1}-01-01").tz_localize(start_date.tzinfo)
+                yrs.append(next_year)
+                current_yr += 1
+            yrs.append(stop_date)
+            print(yrs)
+
+            print(f'All is well, moving on...\n')
+
+            print(f'Yielding data chunks')
+            for yr in range(len(yrs)-1):
+                t0, t1 = yrs[yr], yrs[yr+1]
+                dataset = spz.get_data(dir, t0, t1)
+                df = dataset.to_dataframe()
+                df.index = df.index.tz_localize('UTC')
+                t0_str = t0.strftime("%Y%m%d")
+                t1_str = t1.strftime("%Y%m%d")
+                chunk_file_path = f"{save_dir}{dataset.name}_chunk_{t0_str}-{t1_str}.parquet"
+                print('Saving data chunk')
+                df.to_parquet(chunk_file_path, index=True)
+                print('Data chunk saved...')
+            print(f'All chunks saved to {save_dir}\n\n')
+            combine_parquet_chunks(file_path, dataset.name, save_dir)
+        else:
+            print(f'File already exist: {file_path} -- skipping download ')
+
+
+def retrieve_restrictive_time_boundaries(amda_dir):
+
+    print('Retrieving datetime boundaries')
+    # Convert to datetime for start and stop dates
+    start_dates = []
+    stop_dates = []
+    for dir in amda_dir:
+        start_dates.append(pd.to_datetime(dir.start_date))
+        stop_dates.append(pd.to_datetime(dir.stop_date))
+
+    print(f'Dates present:\n{start_dates}\n{stop_dates}')
+    print(f'Most restrictive start date {max(start_dates)}')
+    print(f'Most restrictive stop date {min(stop_dates)}')
+    print()
+
+    return (max(start_dates), min(stop_dates))
+
+def vizualize(amda_dir, start_date, stop_date):
+
+    for d in amda_dir:
+        dataset = spz.get_data(d,
+                                start_date, stop_date)
+        dataset.plot()
+        plt.show()
+
+def combine_parquet_chunks(file_path, dataset_name, save_dir):
+
+    print(f'Combining chunks')
+    parquet_chunks = [f for f in os.listdir(save_dir) if f.endswith(".parquet") and 'chunk' in f]
+
+    df_list = [pd.read_parquet(os.path.join(save_dir, f)) for f in sorted(parquet_chunks)]
+    combined_df = pd.concat(df_list)
+
+    combined_df.to_parquet(file_path)
+    print(f'Chunks combined to: {file_path}')
+
+    print(f'Deleting chunks...')
+    for f in os.listdir(save_dir):
+        if f.endswith(".parquet") and "chunk" in f and dataset_name in f:
+            os.remove(os.path.join(save_dir, f))
+            print(f"Deleted: {f}")
+
+def check_if_already_saved(file_path):
+
+    return os.path.exists(file_path)
+
+def load_parquet(file_path):
+
+    print(f'Loading parquet into dataframe: {file_path}')
+    df = pd.read_parquet(file_path)
+    print(f'Dataframe ready')
+    return df
+
+
+def main():
+    """     amda_tree.Parameters.Juno.JADE.L5___ions.juno_jadel5_protmom.jade_protmom_n,
+    amda_tree.Parameters.Juno.JADE.L5___ions.juno_jadel5_heavmom.jade_heavmom_n, """
+
+    amda_dir = [
+    amda_tree.Parameters.Juno.Ephemeris.orbit_jupiter.juno_ephem_orb1.juno_eph_orb_jso,
+    amda_tree.Parameters.Juno.JADE.L5___electrons.juno_jadel5_elecmom.jade_elecmom_n,
+    amda_tree.Parameters.Juno.JADE.L5___ions.juno_jadel5_protmom.jade_protmom_n,
+    amda_tree.Parameters.Juno.JADE.L5___ions.juno_jadel5_heavmom.jade_heavmom_n,
+    ]
+
+    #start_date, stop_date = retrieve_restrictive_time_boundaries(amda_dir)
+    #save_data(amda_dir)
+
+    df_loaded = load_parquet('Saved_data/juno_eph_orb_jso_full.parquet')
+
+    size_bytes = df_loaded.memory_usage(deep=True).sum()
+    size_mb = size_bytes / (1024 ** 2)
+    print(f"DataFrame size: {size_mb:.2f} MB")
+
+if __name__ == "__main__":
+    main()
