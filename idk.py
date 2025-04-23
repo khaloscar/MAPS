@@ -49,10 +49,16 @@ for idxp in range(len(sc_pos.index)-1):
 print(dens_extracted)
 print(pos_extracted)
 
-amda_dir = [
+""" amda_dir = [
     amda_tree.Parameters.Juno.Ephemeris.orbit_jupiter.juno_ephem_orb1.juno_eph_orb_jso,
     amda_tree.Parameters.Juno.JADE.L5___electrons.juno_jadel5_elecmom.jade_elecmom_n
+] """
+
+amda_dir = [
+    amda_tree.Parameters.MAVEN.Ephemeris.maven_orb_marsobs1s.mav_xyz_mso1s,
+    amda_tree.Parameters.Juno.JADE.L5___electrons.juno_jadel5_elecmom.jade_elecmom_n
 ]
+
 start_date, stop_date = amddh.retrieve_restrictive_time_boundaries(amda_dir)
 time_delta = dt.timedelta(hours=24)
 start_date = stop_date-time_delta

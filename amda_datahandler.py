@@ -11,9 +11,12 @@ import numpy as np
 amda_tree = spz.inventories.tree.amda
 
 
-def save_data(amda_dir, start_date_arg=None, stop_date_arg=None):
-
-    save_dir = "Saved_data/"
+def save_data(amda_dir, save_dir="Saved_data/", start_date_arg=None, stop_date_arg=None):
+    # Save data from given amda_dir, just define amda_dir = [amda1, amda2, ..., amdaN]
+    # If given start and stop dates, then it will yield data for all datasets
+    # for those dates
+    # Not given, will yield full range for each dataset
+    
 
     # Checking if Save_dir exists, else create
     if not os.path.exists(save_dir):
@@ -29,7 +32,7 @@ def save_data(amda_dir, start_date_arg=None, stop_date_arg=None):
 
             start_date_str = start_date.strftime("%Y%m%d")
             stop_date_str = stop_date.strftime("%Y%m%d")
-            file_name = f"{dataset_name}_{start_date_str}-{stop_date_str}.parquet"
+            file_name = f"{dataset_name}_{start_date_str}-{stop_date_str}.parquet" # data between t0 and t1
             file_path = os.path.join(save_dir, file_name)
         else:
             start_date = pd.to_datetime(dir.start_date)
@@ -37,7 +40,7 @@ def save_data(amda_dir, start_date_arg=None, stop_date_arg=None):
 
             start_date_str = start_date.strftime("%Y%m%d")
             stop_date_str = stop_date.strftime("%Y%m%d")
-            file_name = f"{dataset_name}_full.parquet"
+            file_name = f"{dataset_name}_full.parquet" # for full datasets
             file_path = os.path.join(save_dir, file_name)
 
         print(f'Saving data for {dataset_name}...')
@@ -50,6 +53,8 @@ def save_data(amda_dir, start_date_arg=None, stop_date_arg=None):
 
             # Lets Just generate all the years:
             # Loop yearly from start_date to stop_date
+            # ex: data available 2017/06/06 to 2019/06/06
+            # gives 2017/06/06, 2018/01/01, 2019/01/01, 2019/06/06
             current_yr = start_date.year
             yrs =[start_date]
             while current_yr < stop_date.year:
@@ -61,6 +66,9 @@ def save_data(amda_dir, start_date_arg=None, stop_date_arg=None):
 
             print(f'All is well, moving on...\n')
 
+            # downloads data chunkwise
+            # then combines to single .parquet
+            # then deletes chunks
             print(f'Yielding data chunks')
             for yr in range(len(yrs)-1):
                 t0, t1 = yrs[yr], yrs[yr+1]
@@ -80,6 +88,11 @@ def save_data(amda_dir, start_date_arg=None, stop_date_arg=None):
 
 
 def retrieve_restrictive_time_boundaries(amda_dir):
+    # All amda datasets exist between some t0 and t1
+    # gets the most restrictive datetime boundaries
+    # across all datasets
+    # useful when you want to minimize amnt. of data 
+    # downloaded
 
     print('Retrieving datetime boundaries')
     # Convert to datetime for start and stop dates
@@ -99,12 +112,15 @@ def retrieve_restrictive_time_boundaries(amda_dir):
 def vizualize(amda_dir, start_date, stop_date):
 
     for d in amda_dir:
+        # Basic plotting for amda datasets between two dates
         dataset = spz.get_data(d,
                                 start_date, stop_date)
         dataset.plot()
         plt.show()
 
 def combine_parquet_chunks(file_path, dataset_name, save_dir):
+    # Combines .parquet chunks into single parquet, then deletes
+    # error prone if non related chunks are present
 
     print(f'Combining chunks')
     parquet_chunks = [f for f in os.listdir(save_dir) if f.endswith(".parquet") and 'chunk' in f]
@@ -126,25 +142,27 @@ def check_if_already_saved(file_path):
     return os.path.exists(file_path)
 
 def load_parquet(file_path):
-
+    # loads parquet into pandas dataframe
+    # indexing might not be datetime class
+    # double check
     print(f'Loading parquet into dataframe: {file_path}')
     df = pd.read_parquet(file_path)
     print(f'Dataframe ready')
     return df
 
 def main():
+    
     """     amda_tree.Parameters.Juno.JADE.L5___ions.juno_jadel5_protmom.jade_protmom_n,
     amda_tree.Parameters.Juno.JADE.L5___ions.juno_jadel5_heavmom.jade_heavmom_n, """
 
     amda_dir = [
     amda_tree.Parameters.Juno.Ephemeris.orbit_jupiter.juno_ephem_orb1.juno_eph_orb_jso,
     amda_tree.Parameters.Juno.JADE.L5___electrons.juno_jadel5_elecmom.jade_elecmom_n,
-    amda_tree.Parameters.Juno.JADE.L5___ions.juno_jadel5_protmom.jade_protmom_n,
-    amda_tree.Parameters.Juno.JADE.L5___ions.juno_jadel5_heavmom.jade_heavmom_n,
     ]
 
+    save_dir = 'Saved_data/'
     start_date, stop_date = retrieve_restrictive_time_boundaries(amda_dir)
-    save_data(amda_dir)
+    save_data(amda_dir, save_dir=save_dir)
 
     """ df_loaded = load_parquet('Saved_data/juno_eph_orb_jso_full.parquet')
 
