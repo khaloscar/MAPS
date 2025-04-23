@@ -1,7 +1,7 @@
 # MAPS
 Magnetosheath Analysis for Planetary Systems:
 
-    Let's got to jupiter to get more stupiter
+    "Let's got to jupiter to get more stupiter"
 
 amda_datahandler:
 
