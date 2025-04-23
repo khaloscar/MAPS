@@ -29,3 +29,7 @@ average_plot:
 figure_out_tree:
 
     Useful for figuring out amda structure and finding amda filepath to dataset of interest
+
+Wtb the other ones?:
+
+    bro idk, its a mess rn
