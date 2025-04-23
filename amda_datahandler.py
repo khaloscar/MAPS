@@ -151,13 +151,15 @@ def load_parquet(file_path):
     return df
 
 def main():
-    
-    """     amda_tree.Parameters.Juno.JADE.L5___ions.juno_jadel5_protmom.jade_protmom_n,
-    amda_tree.Parameters.Juno.JADE.L5___ions.juno_jadel5_heavmom.jade_heavmom_n, """
 
-    amda_dir = [
+    """     amda_dir = [
     amda_tree.Parameters.Juno.Ephemeris.orbit_jupiter.juno_ephem_orb1.juno_eph_orb_jso,
     amda_tree.Parameters.Juno.JADE.L5___electrons.juno_jadel5_elecmom.jade_elecmom_n,
+    ] """
+
+    amda_dir = [
+        amda_tree.Parameters.MAVEN.Ephemeris.maven_orb_marsobs1s.mav_xyz_mso1s,
+        amda_tree.Parameters.MAVEN.NGIMS.mav_ngims_kp.mav_ngimskp_he
     ]
 
     save_dir = 'Saved_data/'

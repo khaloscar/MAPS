@@ -67,6 +67,7 @@ def merge_dataframes(pos_df, param_df):
     return df_merged
 
 def clean_dataframe(dataframe, parameter):
+    # Takes in column name and removes Nan, None, and zero-values
     dataframe = dataframe[dataframe[parameter].notna() & (dataframe[parameter] != 0)]
     return dataframe
 
