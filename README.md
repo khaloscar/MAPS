@@ -9,6 +9,15 @@ amda_datahandler:
         2. Loading into pandas dataframe
         3. Finding most restrictive time boundaries of all sets
         4. bugs
+
+    Possible features:
+        - Chunkwise reading from .parquet?
+        - Maybe have chunkwise saving be optional?
+        - Maybe just retrieve subrange of values from .parquet
+            or, maybe even across chunks??
+
+    Question marks:
+        - Is the chunks inclusive on the boundaries? i.e, is there any data duplicates
     
     * Must be of the form amda_tree.Parameters.{SATTELITE}.{MAP}.{DATA} etc, i.e, uses spz.get_data
         and not the other one. Use figure_out_tree to figure out amda path
