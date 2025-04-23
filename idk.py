@@ -5,7 +5,7 @@ import speasy as spz
 import amda_datahandler as amddh
 amda_tree = spz.inventories.tree.amda
 
-start_date_density = dt.datetime(2015,1,1,0,1,1,15)
+""" start_date_density = dt.datetime(2015,1,1,0,1,1,15)
 start_date_pos = dt.datetime(2015,1,1,0,0,1)
 timeDelta = dt.timedelta(seconds=30)
 time_stamps_density = [start_date_density + f*timeDelta for f in range(10)]
@@ -49,10 +49,10 @@ for idxp in range(len(sc_pos.index)-1):
 print(dens_extracted)
 print(pos_extracted)
 
-""" amda_dir = [
+amda_dir = [
     amda_tree.Parameters.Juno.Ephemeris.orbit_jupiter.juno_ephem_orb1.juno_eph_orb_jso,
     amda_tree.Parameters.Juno.JADE.L5___electrons.juno_jadel5_elecmom.jade_elecmom_n
-] """
+]
 
 amda_dir = [
     amda_tree.Parameters.MAVEN.Ephemeris.maven_orb_marsobs1s.mav_xyz_mso1s,
@@ -98,4 +98,60 @@ print(df_merged.head())
 print(df_merged.info())
 print(df_merged[['x', 'y', 'z']])
 
-# Får fram densitet o position för denna, dunderenkelt
+# Får fram densitet o position för denna, dunderenkelt """
+
+def time_range_generator(start_date, stop_date):
+    # Generates time range boundaries, as of now, yearly
+    # ex: data available 2017/06/06 to 2019/06/06
+    # gives 2017/06/06, 2018/01/01, 2019/01/01, 2019/06/06
+    current_yr = start_date.year
+    yrs =[start_date]
+    while current_yr < stop_date.year:
+        next_year = pd.to_datetime(f"{current_yr + 1}-01-01").tz_localize(start_date.tzinfo)
+        yrs.append(next_year)
+        current_yr += 1
+    yrs.append(stop_date)
+    print(f'Time boundaries: \n{yrs}')
+    return yrs
+
+def time_range_generator(start_date, stop_date, step='year'):
+    # Generates time range boundaries based on the step: 'year', 'month', or 'day'
+    if start_date > stop_date:
+        raise ValueError("start_date must be before stop_date")
+    
+    current = start_date
+    boundaries = [start_date]
+
+    while current < stop_date:
+        if step == 'year':
+            next_step = pd.Timestamp(year=current.year + 1, month=1, day=1, tz=current.tzinfo)
+        elif step == 'month':
+            next_month = current.month + 1 if current.month < 12 else 1
+            next_year = current.year if current.month < 12 else current.year + 1
+            next_step = pd.Timestamp(year=next_year, month=next_month, day=1, tz=current.tzinfo)
+        elif step == 'day':
+            next_step = current + pd.Timedelta(days=1)
+        else:
+            raise ValueError("step must be 'year', 'month', or 'day'")
+        
+        if next_step >= stop_date:
+            break
+        boundaries.append(next_step)
+        current = next_step
+
+    boundaries.append(stop_date)
+    print(f"Time boundaries ({step}s):\n{boundaries}")
+    return boundaries
+
+test_Date = dt.datetime(2017,1,12,13,55)
+
+print(getattr(test_Date, 'year'))
+print(getattr(test_Date, 'month'))
+print(getattr(test_Date, 'day'))
+print(getattr(test_Date, 'hour'))
+print(getattr(test_Date, 'minute'))
+
+start = dt.datetime(2017,2,3,2)
+stop = dt.datetime(2017,2,6,6)
+
+time_range_generator(start, stop, step='day')

@@ -55,14 +55,7 @@ def save_data(amda_dir, save_dir="Saved_data/", start_date_arg=None, stop_date_a
             # Loop yearly from start_date to stop_date
             # ex: data available 2017/06/06 to 2019/06/06
             # gives 2017/06/06, 2018/01/01, 2019/01/01, 2019/06/06
-            current_yr = start_date.year
-            yrs =[start_date]
-            while current_yr < stop_date.year:
-                next_year = pd.to_datetime(f"{current_yr + 1}-01-01").tz_localize(start_date.tzinfo)
-                yrs.append(next_year)
-                current_yr += 1
-            yrs.append(stop_date)
-            print(yrs)
+            yrs = time_range_generator(start_date, stop_date)
 
             print(f'All is well, moving on...\n')
 
@@ -72,17 +65,20 @@ def save_data(amda_dir, save_dir="Saved_data/", start_date_arg=None, stop_date_a
             print(f'Yielding data chunks')
             for yr in range(len(yrs)-1):
                 t0, t1 = yrs[yr], yrs[yr+1]
-                dataset = spz.get_data(dir, t0, t1)
-                df = dataset.to_dataframe()
-                df.index = df.index.tz_localize('UTC')
-                t0_str = t0.strftime("%Y%m%d")
-                t1_str = t1.strftime("%Y%m%d")
+                t0_str, t1_str = t0.strftime("%Y%m%d"), t1.strftime("%Y%m%d")
+
+                dataset = spz.get_data(dir, t0, t1).to_dataframe()
+                dataset.index = dataset.index.tz_localize('UTC')
+                
                 chunk_file_path = f"{save_dir}{dataset.name}_chunk_{t0_str}-{t1_str}.parquet"
+
                 print('Saving data chunk')
-                df.to_parquet(chunk_file_path, index=True)
+                dataset.to_parquet(chunk_file_path, index=True)
                 print('Data chunk saved...')
+
             print(f'All chunks saved to {save_dir}\n\n')
             combine_parquet_chunks(file_path, dataset.name, save_dir)
+
         else:
             print(f'File already exist: {file_path} -- skipping download ')
 
@@ -149,6 +145,21 @@ def load_parquet(file_path):
     df = pd.read_parquet(file_path)
     print(f'Dataframe ready')
     return df
+
+def time_range_generator(start_date, stop_date):
+    # Generates time range boundaries, as of now, yearly
+    # ex: data available 2017/06/06 to 2019/06/06
+    # gives 2017/06/06, 2018/01/01, 2019/01/01, 2019/06/06
+    current_yr = start_date.year
+    yrs =[start_date]
+    while current_yr < stop_date.year:
+        next_year = pd.to_datetime(f"{current_yr + 1}-01-01").tz_localize(start_date.tzinfo)
+        yrs.append(next_year)
+        current_yr += 1
+    yrs.append(stop_date)
+    print(f'Time boundaries: \n{yrs}')
+    return yrs
+
 
 def main():
 
