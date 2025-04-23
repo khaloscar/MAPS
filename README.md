@@ -2,6 +2,7 @@
 Magnetosheath Analysis for Planetary Systems
 
 amda_datahandler:
+
     Downloads an array of amda datasets* and saves them locally.
     Features: 
         1. Saving into .parquet
@@ -13,6 +14,7 @@ amda_datahandler:
         and no the other one. Use figure_out_tree to figure out amda path
 
 average_plot:
+
     Produces 2D-statistical maps for pos and some parameter, as much as possible is automatically generated
     Featuers:
         Give pos dataset and paramdataset (say, density or temperature)
@@ -25,4 +27,5 @@ average_plot:
         - 
 
 figure_out_tree:
+
     Useful for figuring out amda structure and finding amda filepath to dataset of interest
