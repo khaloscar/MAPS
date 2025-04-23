@@ -1,11 +1,14 @@
 import speasy as spz
 from speasy import amda
-amda_tree = spz.inventories.tree.amda
 import pandas as pd
 import datetime as dt
 from dateutil.relativedelta import relativedelta
 import os
 from matplotlib import pyplot as plt
+import matplotlib.gridspec as gridspec
+import numpy as np
+
+amda_tree = spz.inventories.tree.amda
 
 
 def save_data(amda_dir, start_date_arg=None, stop_date_arg=None):
@@ -129,7 +132,6 @@ def load_parquet(file_path):
     print(f'Dataframe ready')
     return df
 
-
 def main():
     """     amda_tree.Parameters.Juno.JADE.L5___ions.juno_jadel5_protmom.jade_protmom_n,
     amda_tree.Parameters.Juno.JADE.L5___ions.juno_jadel5_heavmom.jade_heavmom_n, """
@@ -141,14 +143,14 @@ def main():
     amda_tree.Parameters.Juno.JADE.L5___ions.juno_jadel5_heavmom.jade_heavmom_n,
     ]
 
-    #start_date, stop_date = retrieve_restrictive_time_boundaries(amda_dir)
-    #save_data(amda_dir)
+    start_date, stop_date = retrieve_restrictive_time_boundaries(amda_dir)
+    save_data(amda_dir)
 
-    df_loaded = load_parquet('Saved_data/juno_eph_orb_jso_full.parquet')
+    """ df_loaded = load_parquet('Saved_data/juno_eph_orb_jso_full.parquet')
 
     size_bytes = df_loaded.memory_usage(deep=True).sum()
     size_mb = size_bytes / (1024 ** 2)
-    print(f"DataFrame size: {size_mb:.2f} MB")
+    print(f"DataFrame size: {size_mb:.2f} MB") """
 
 if __name__ == "__main__":
     main()
