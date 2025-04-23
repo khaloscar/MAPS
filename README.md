@@ -11,17 +11,17 @@ amda_datahandler:
         4. bugs
     
     * Must be of the form amda_tree.Parameters.{SATTELITE}.{MAP}.{DATA} etc, i.e, uses spz.get_data
-        and no the other one. Use figure_out_tree to figure out amda path
+        and not the other one. Use figure_out_tree to figure out amda path
 
 average_plot:
 
     Produces 2D-statistical maps for pos and some parameter, as much as possible is automatically generated
-    Featuers:
+    Features:
         Give pos dataset and paramdataset (say, density or temperature)
         Matches position and param time-axises, cleans dataset, and plots
     
     Possible features:
-        - Do it chunkwise between two large time-ranges, perhaps monthly or yearly
+        - Do it chunkwise between two large time-ranges, perhaps monthly or yearly (this shit should be automated)
         - ??
         - Make more beautiful plots
         - 
