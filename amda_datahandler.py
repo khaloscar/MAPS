@@ -67,17 +67,19 @@ def save_data(amda_dir, save_dir="Saved_data/", start_date_arg=None, stop_date_a
                 t0, t1 = yrs[yr], yrs[yr+1]
                 t0_str, t1_str = t0.strftime("%Y%m%d"), t1.strftime("%Y%m%d")
 
-                dataset = spz.get_data(dir, t0, t1).to_dataframe()
+                dataset = spz.get_data(dir, t0, t1)
+                name = dataset.name
+                dataset = dataset.to_dataframe()
                 dataset.index = dataset.index.tz_localize('UTC')
                 
-                chunk_file_path = f"{save_dir}{dataset.name}_chunk_{t0_str}-{t1_str}.parquet"
+                chunk_file_path = f"{save_dir}{name}_chunk_{t0_str}-{t1_str}.parquet"
 
                 print('Saving data chunk')
                 dataset.to_parquet(chunk_file_path, index=True)
                 print('Data chunk saved...')
 
             print(f'All chunks saved to {save_dir}\n\n')
-            combine_parquet_chunks(file_path, dataset.name, save_dir)
+            combine_parquet_chunks(file_path, name, save_dir)
 
         else:
             print(f'File already exist: {file_path} -- skipping download ')
@@ -169,6 +171,8 @@ def main():
     ] """
 
     amda_dir = [
+        amda_tree.Parameters.Juno.Ephemeris.orbit_jupiter.juno_ephem_orb1.juno_eph_orb_jso,
+        amda_tree.Parameters.Juno.JADE.L5___electrons.juno_jadel5_elecmom.jade_elecmom_n,
         amda_tree.Parameters.MAVEN.Ephemeris.maven_orb_marsobs1s.mav_xyz_mso1s,
         amda_tree.Parameters.MAVEN.NGIMS.mav_ngims_kp.mav_ngimskp_he
     ]
