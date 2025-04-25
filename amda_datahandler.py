@@ -21,25 +21,30 @@ def save_data(amda_dir, save_dir="Saved_data/", start_date_arg=None, stop_date_a
     # Checking if Save_dir exists, else create
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
+    
 
     # Just get the data and save it, preferrably whole thingy
     # Able to handle pathing in amda tree
 
     for dir in amda_dir:
         dataset_name = dir.xmlid
+        save_dir = save_dir+dataset_name+'/'
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+
         if start_date_arg is not None and stop_date_arg is not None:
             start_date, stop_date = start_date_arg, stop_date_arg
-
             start_date_str = start_date.strftime("%Y%m%d")
             stop_date_str = stop_date.strftime("%Y%m%d")
+
             file_name = f"{dataset_name}_{start_date_str}-{stop_date_str}.parquet" # data between t0 and t1
             file_path = os.path.join(save_dir, file_name)
         else:
             start_date = pd.to_datetime(dir.start_date)
             stop_date = pd.to_datetime(dir.stop_date)
-
             start_date_str = start_date.strftime("%Y%m%d")
             stop_date_str = stop_date.strftime("%Y%m%d")
+
             file_name = f"{dataset_name}_full.parquet" # for full datasets
             file_path = os.path.join(save_dir, file_name)
 
