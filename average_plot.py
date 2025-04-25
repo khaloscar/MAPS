@@ -87,7 +87,7 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename)
     print(idx)
     print(idy)
     print(idz)
-    t = 2
+    t = 20
 
    
 
@@ -178,21 +178,28 @@ def main():
 
     run_time_t0 = dt.datetime.now()
 
+    #        amda_tree.Parameters.MAVEN.Ephemeris.maven_orb_marsobs1s.mav_xyz_mso1s,
+    #    amda_tree.Parameters.MAVEN.NGIMS.mav_ngims_kp.mav_ngimskp_he
+
     amda_dir = [
-        amda_tree.Parameters.MAVEN.Ephemeris.maven_orb_marsobs1s.mav_xyz_mso1s,
-        amda_tree.Parameters.MAVEN.NGIMS.mav_ngims_kp.mav_ngimskp_he
+        amda_tree.Parameters.Juno.Ephemeris.orbit_jupiter.juno_ephem_orb1.juno_eph_orb_jso,
+        amda_tree.Parameters.Juno.JADE.L5___electrons.juno_jadel5_elecmom.jade_elecmom_n
     ]
 
     species = amda_dir[1].name
     now = dt.datetime.now()
     start_date = dt.datetime(2016,1,1)
     stop_date = dt.datetime(2018,12,30)
-    timedelta = dt.timedelta(days=365)
+    timedelta = dt.timedelta(days=25)
     
 
     start_date, stop_date = amddh.retrieve_restrictive_time_boundaries(amda_dir)
-    stop_date = start_date + timedelta
+    #stop_date = start_date + timedelta
     filepath = 'Data_plots'
+
+    if not os.path.exists(filepath):
+        os.makedirs(filepath)
+
     filename = f'{filepath}/{species}__average_dens_plot_{start_date.strftime("%Y%m%d__%H%M%S")}--{stop_date.strftime("%Y%m%d__%H%M%S")}__created__{now.strftime("%Y%m%d__%H%M%S")}'
 
     print('Getting files:')
