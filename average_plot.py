@@ -230,11 +230,28 @@ def main():
     hist_xyz_nrmeas, hist_xyz_dens = fix_histogram_placeholder(edges_n_bins)
 
 
-    hist_xyz_nrmeas, hist_xyz_dens = sum_histogram_data(hist_xyz_nrmeas,
-                                                        hist_xyz_dens,
-                                                        pos_dens_df[species],
-                                                        pos_dens_df[['x', 'y', 'z']],
-                                                        edges)
+    time_delta = dt.timedelta(weeks=4)
+    t0 = start_date
+    t1 = t0+time_delta
+    while t0 < stop_date:
+
+        sc_pos = spz.get_data(amda_dir[0], t0, t1).to_dataframe()
+        dens  = spz.get_data(amda_dir[1], t0, t1).to_dataframe()
+        dens = clean_dataframe(dens, species)
+
+        print('Merging frames')
+        pos_dens_df = merge_dataframes(sc_pos, dens)
+        print(f'has shape {pos_dens_df.shape}')
+
+        hist_xyz_nrmeas, hist_xyz_dens = sum_histogram_data(hist_xyz_nrmeas,
+                                                            hist_xyz_dens,
+                                                            pos_dens_df[species],
+                                                            pos_dens_df[['x', 'y', 'z']],
+                                                            edges)
+        
+        t0 = t1
+        t1 += time_delta
+        # plotta sista fucking jäveln också
     
     plot_histogram_data(hist_xyz_nrmeas, hist_xyz_dens, 'electron', edges, filename)
 
