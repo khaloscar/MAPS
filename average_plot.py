@@ -87,7 +87,7 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename)
     print(idx)
     print(idy)
     print(idz)
-    t = 20
+    t = 1
 
    
 
@@ -95,17 +95,33 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename)
     hist_xz = histogram_xyz_average[:, idy, :]
     hist_yz = histogram_xyz_average[idx, :, :] """
 
-    hist_xy = np.nanmean(histogram_xyz_average[:, :, idz-t:idz+t], axis=2)
+    """     hist_xy = np.nanmean(histogram_xyz_average[:, :, idz-t:idz+t], axis=2)
     hist_xz = np.nanmean(histogram_xyz_average[:, idy-t:idy+t, :], axis=1)
-    hist_yz = np.nanmean(histogram_xyz_average[idx-t:idx+t, :, :], axis=0)
+    hist_yz = np.nanmean(histogram_xyz_average[idx-t:idx+t, :, :], axis=0) """
+
+    hist_xy = histogram_xyz_average[:, :, idz]
+    hist_xz = histogram_xyz_average[:, idy, :]
+    hist_yz = histogram_xyz_average[idx, :, :]
 
     # Use the smallest/largest density as colorbar
     """     cmin = np.nanmin([np.nanmin(hist_xy[hist_xy > 0.]), np.nanmin(hist_xz[hist_xz > 0.]), np.nanmin(hist_yz[hist_yz > 0.])])
     cmax = np.nanmax([np.nanmax(hist_xy[hist_xy > 0.]), np.nanmax(hist_xz[hist_xz > 0.]), np.nanmax(hist_yz[hist_yz > 0.])]) """
 
     
-    cmin = np.nanmin([safe_nanmin(hist_xy), safe_nanmin(hist_xz), safe_nanmin(hist_yz)])
-    cmax = np.nanmax([safe_nanmax(hist_xy), safe_nanmax(hist_xz), safe_nanmax(hist_yz)])
+    """     cmin = np.nanmin([safe_nanmin(hist_xy), safe_nanmin(hist_xz), safe_nanmin(hist_yz)])
+    cmax = np.nanmax([safe_nanmax(hist_xy), safe_nanmax(hist_xz), safe_nanmax(hist_yz)]) """
+
+    vals = np.hstack((
+        hist_xy[hist_xy > 0],
+        hist_xz[hist_xz > 0],
+        hist_yz[hist_yz > 0]
+    ))
+
+    if vals.size == 0:
+        print(f'INGEN DATA O PLOTTA')
+        return
+    
+    cmin, cmax = vals.min(), vals.max()
 
     # Plot all the data
     fig = plt.figure(figsize=(14, 10))
@@ -181,12 +197,18 @@ def main():
     #        amda_tree.Parameters.MAVEN.Ephemeris.maven_orb_marsobs1s.mav_xyz_mso1s,
     #    amda_tree.Parameters.MAVEN.NGIMS.mav_ngims_kp.mav_ngimskp_he
 
-    amda_dir = [
+    """     amda_dir = [
         amda_tree.Parameters.Juno.Ephemeris.orbit_jupiter.juno_ephem_orb1.juno_eph_orb_jso,
         amda_tree.Parameters.Juno.JADE.L5___electrons.juno_jadel5_elecmom.jade_elecmom_n
+    ] """
+
+    amda_dir = [
+        amda_tree.Parameters.MAVEN.Ephemeris.maven_orb_marsobs1s.mav_xyz_mso1s,
+        amda_tree.Parameters.MAVEN.SWIA.mav_swia_kp.mav_swiakp_n
     ]
 
     species = amda_dir[1].name
+    print(f'Species name: {species}')
     now = dt.datetime.now()
     start_date = dt.datetime(2016,1,1)
     stop_date = dt.datetime(2018,12,30)
@@ -200,26 +222,25 @@ def main():
     if not os.path.exists(filepath):
         os.makedirs(filepath)
 
-    filename = f'{filepath}/{species}__average_dens_plot_{start_date.strftime("%Y%m%d__%H%M%S")}--{stop_date.strftime("%Y%m%d__%H%M%S")}__created__{now.strftime("%Y%m%d__%H%M%S")}'
+    filename = f'{filepath}/oxygen_density__average_dens_plot_{start_date.strftime("%Y%m%d__%H%M%S")}--{stop_date.strftime("%Y%m%d__%H%M%S")}__created__{now.strftime("%Y%m%d__%H%M%S")}'
 
-    print('Getting files:')
+    """     print('Getting files:')
     sc_pos = spz.get_data(amda_dir[0], start_date, stop_date).to_dataframe()
     dens  = spz.get_data(amda_dir[1], start_date, stop_date).to_dataframe()
-    dens = clean_dataframe(dens, species)
+    dens = clean_dataframe(dens, species) """
 
     print('Calculating max distance')
-    radius = (sc_pos['x']**2+sc_pos['y']**2+sc_pos['z']**2)**0.5
-    radius = np.ceil(radius.max())
-    print(f'max {radius}')
+    radius = 5
+    n_bins = 50
 
-    print('Merging frames')
+    """     print('Merging frames')
     pos_dens_df = merge_dataframes(sc_pos, dens)
-    print(f'has shape {pos_dens_df.shape}')
-
+    print(f'has shape {pos_dens_df.shape}') """
+     
     # Boundary edges for the bins/grids
-    xedges = np.linspace(-radius,radius,50)
-    yedges = np.linspace(-radius,radius,50)
-    zedges = np.linspace(-radius,radius,50)
+    xedges = np.linspace(-radius,radius,n_bins)
+    yedges = np.linspace(-radius,radius,n_bins)
+    zedges = np.linspace(-radius,radius,n_bins)
     edges = (xedges, yedges, zedges)
     edges_n_bins = (xedges.shape[0]-1,
                 yedges.shape[0]-1,
@@ -229,7 +250,10 @@ def main():
 
     hist_xyz_nrmeas, hist_xyz_dens = fix_histogram_placeholder(edges_n_bins)
 
-
+    """     start_date = dt.datetime(2015,1,1)
+    stop_date = dt.datetime(2015,10,1)
+    tdt = dt.timedelta(weeks=104)
+    stop_date = start_date+tdt """
     time_delta = dt.timedelta(weeks=4)
     t0 = start_date
     t1 = t0+time_delta
@@ -253,7 +277,7 @@ def main():
         t1 += time_delta
         # plotta sista fucking jäveln också
     
-    plot_histogram_data(hist_xyz_nrmeas, hist_xyz_dens, 'electron', edges, filename)
+    plot_histogram_data(hist_xyz_nrmeas, hist_xyz_dens, species, edges, filename)
 
     run_time_t2 = dt.datetime.now()
     delta = run_time_t2 - run_time_t0
