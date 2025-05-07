@@ -76,7 +76,6 @@ def save_data(amda_dir, save_dir="Saved_data/", start_date_arg=None, stop_date_a
                 name = dataset.name
                 dataset = dataset.to_dataframe()
                 dataset.index = dataset.index.tz_localize('UTC')
-                
                 chunk_file_path = f"{save_dir}{name}_chunk_{t0_str}-{t1_str}.parquet"
 
                 print('Saving data chunk')
@@ -84,7 +83,8 @@ def save_data(amda_dir, save_dir="Saved_data/", start_date_arg=None, stop_date_a
                 print('Data chunk saved...')
 
             print(f'All chunks saved to {save_dir}\n\n')
-            combine_parquet_chunks(file_path, name, save_dir)
+            combine_parquet_chunks(file_path, save_dir)
+            delete_parquet_chunks(name, save_dir)
 
         else:
             print(f'File already exist: {file_path} -- skipping download ')
@@ -121,7 +121,7 @@ def vizualize(amda_dir, start_date, stop_date):
         dataset.plot()
         plt.show()
 
-def combine_parquet_chunks(file_path, dataset_name, save_dir):
+def combine_parquet_chunks(file_path, save_dir):
     # Combines .parquet chunks into single parquet, then deletes
     # error prone if non related chunks are present
 
@@ -131,9 +131,10 @@ def combine_parquet_chunks(file_path, dataset_name, save_dir):
     df_list = [pd.read_parquet(os.path.join(save_dir, f)) for f in sorted(parquet_chunks)]
     combined_df = pd.concat(df_list)
 
-    combined_df.to_parquet(file_path)
+    combined_df.to_parquet(file_path+'.parquet')
     print(f'Chunks combined to: {file_path}')
 
+def delete_parquet_chunks(dataset_name, save_dir):
     print(f'Deleting chunks...')
     for f in os.listdir(save_dir):
         if f.endswith(".parquet") and "chunk" in f and dataset_name in f:
@@ -167,6 +168,38 @@ def time_range_generator(start_date, stop_date):
     print(f'Time boundaries: \n{yrs}')
     return yrs
 
+def save_histogram(hist_nrmeas, hist_den, edges, filename):
+    np.savez_compressed(
+    f'{filename}.npz',
+    hist_nrmeas=hist_nrmeas,
+    hist_den=hist_den,
+    xedges=edges[0],
+    yedges=edges[1],
+    zedges=edges[2],
+    redges=edges[3]
+    )
+    print(f'Hist data saved!')
+
+def save_info(iterations, filepath):
+    np.savez_compressed(
+        filepath+'/info.npz',
+        iterations)
+    
+def load_info(filepath):
+    info = np.load(filepath+'info.npz')
+    iterations = info['iterations']
+    return iterations
+
+def load_histogram(filename):
+    data = np.load(f'{filename}.npz')
+    hist_nrmeas = data['hist_nrmeas']
+    hist_den = data['hist_den']
+    edges = (
+    data['xedges'],
+    data['yedges'],
+    data['zedges'],
+    data['redges'])
+    return hist_nrmeas, hist_den, edges
 
 def main():
 

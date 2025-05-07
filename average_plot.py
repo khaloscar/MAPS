@@ -36,8 +36,8 @@ def parameter_to_histogram(dataframe, parameter):
         print()
 
 def sum_histogram_data(hist_xyz_nrmeas, hist_xyz_den, density, sc_position_ntp, edges):
-    hist_nrmeas, _ = np.histogramdd(sc_position_ntp.values, bins=edges)
-    hist_den, _ = np.histogramdd(sc_position_ntp.values, bins=edges, weights=density.values)
+    hist_nrmeas, _ = np.histogramdd(sc_position_ntp.values, bins=edges[:-1])
+    hist_den, _ = np.histogramdd(sc_position_ntp.values, bins=edges[:-1], weights=density.values)
     hist_xyz_nrmeas += hist_nrmeas
     hist_xyz_den += hist_den
     return hist_xyz_nrmeas, hist_xyz_den
@@ -76,7 +76,7 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename)
     cmap = plt.cm.inferno
     cmap.set_under(cmap(0))
     
-    xedges, yedges, zedges = edges[0], edges[1], edges[2]
+    xedges, yedges, zedges, redges = edges[0], edges[1], edges[2], edges[3]
     # Fix average density for each histogram and then extract for plotting
 
     histogram_xyz_average = hist_xyz_den / hist_xyz_nrmeas
@@ -84,10 +84,32 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename)
     idx = int(xedges.shape[0] / 2)
     idy = int(yedges.shape[0] / 2)
     idz = int(zedges.shape[0] / 2)
-    print(idx)
-    print(idy)
-    print(idz)
-    t = 1
+
+    # Skapa meshgrid av y- och z-edges för att beräkna r
+    Yc, Zc = np.meshgrid((yedges[:-1] + yedges[1:]) / 2, (zedges[:-1] + zedges[1:]) / 2, indexing='ij')
+    R = np.sqrt(Yc**2 + Zc**2)
+
+    # Initiera hist_xr
+    hist_xr = np.full((len(xedges)-1, len(redges)-1), np.nan)
+
+    # Gå igenom varje x-bin
+    for ix in range(histogram_xyz_average.shape[0]):
+        slice_yz = histogram_xyz_average[ix, :, :]  # yz-slice vid fix x
+        r_vals = R.flatten()
+        dens_vals = slice_yz.flatten()
+
+        # Filtrera bort NaN
+        valid = ~np.isnan(dens_vals)
+        r_vals = r_vals[valid]
+        dens_vals = dens_vals[valid]
+
+        # Bin densities i r för varje x-bin
+        if len(r_vals) > 0:
+            hist_sum, _ = np.histogram(r_vals, bins=redges, weights=dens_vals)
+            hist_count, _ = np.histogram(r_vals, bins=redges)
+            with np.errstate(invalid='ignore', divide='ignore'):
+                hist_avg = hist_sum / hist_count
+            hist_xr[ix, :] = hist_avg
 
    
 
@@ -103,6 +125,7 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename)
     hist_xz = histogram_xyz_average[:, idy, :]
     hist_yz = histogram_xyz_average[idx, :, :]
 
+
     # Use the smallest/largest density as colorbar
     """     cmin = np.nanmin([np.nanmin(hist_xy[hist_xy > 0.]), np.nanmin(hist_xz[hist_xz > 0.]), np.nanmin(hist_yz[hist_yz > 0.])])
     cmax = np.nanmax([np.nanmax(hist_xy[hist_xy > 0.]), np.nanmax(hist_xz[hist_xz > 0.]), np.nanmax(hist_yz[hist_yz > 0.])]) """
@@ -114,7 +137,8 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename)
     vals = np.hstack((
         hist_xy[hist_xy > 0],
         hist_xz[hist_xz > 0],
-        hist_yz[hist_yz > 0]
+        hist_yz[hist_yz > 0],
+        hist_xr[hist_xr > 0]
     ))
 
     if vals.size == 0:
@@ -130,13 +154,13 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename)
     ax_xy = fig.add_subplot(gs[0, 0])
     ax_xz = fig.add_subplot(gs[1, 0])
     ax_yz = fig.add_subplot(gs[0, 1])
-    # ax_xr = fig.add_subplot(gs[1, 1])
+    ax_xr = fig.add_subplot(gs[1, 1])
     ax_cb = fig.add_subplot(gs[:, -1])
 
     ax_xy.pcolormesh(xedges, yedges, hist_xy.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax))
     ax_xz.pcolormesh(xedges, zedges, hist_xz.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax))
     ax_yz.pcolormesh(yedges, zedges, hist_yz.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax))
-    # ax_xr.pcolormesh(xedges, redges, hist_xr.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax))
+    ax_xr.pcolormesh(xedges, redges, hist_xr.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax))
 
     """     hp.add_bow_shock_magnetopause_plot(ax_xy)
     hp.add_bow_shock_magnetopause_plot(ax_xz)
@@ -146,12 +170,12 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename)
     ax_xy.set_xlabel('MSO X [RM]')
     ax_xz.set_xlabel('MSO X [RM]')
     ax_yz.set_xlabel('MSO Y [RM]')
-    # ax_xr.set_xlabel('MSO X [RM]')
+    ax_xr.set_xlabel('MSO X [RM]')
 
     ax_xy.set_ylabel('MSO Y [RM]')
     ax_xz.set_ylabel('MSO Z [RM]')
     ax_yz.set_ylabel('MSO Z [RM]')
-    # ax_xr.set_ylabel('MSO R [RM]')
+    ax_xr.set_ylabel('MSO R [RM]')
 
     # Fix the ranges of the orbital plots
     ax_xy.set_xlim(xedges[0], xedges[-1])
@@ -163,10 +187,10 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename)
     ax_yz.set_xlim(yedges[0], yedges[-1])
     ax_yz.set_ylim(zedges[0], zedges[-1])
 
-    # ax_xr.set_xlim(xedges[0], xedges[-1])
-    # ax_xr.set_ylim(redges[0], redges[-1])
+    ax_xr.set_xlim(xedges[0], xedges[-1])
+    ax_xr.set_ylim(redges[0], redges[-1])
 
-    for ax in [ax_xy, ax_xz, ax_yz]:  # , ax_xr
+    for ax in [ax_xy, ax_xz, ax_yz, ax_xr]:  # , ax_xr
         ax.set_aspect('equal')
 
     # Add a colorbar with the counts
@@ -202,82 +226,127 @@ def main():
         amda_tree.Parameters.Juno.JADE.L5___electrons.juno_jadel5_elecmom.jade_elecmom_n
     ] """
 
+    pos_dir = amda_tree.Parameters.MAVEN.Ephemeris.maven_orb_marsobs1s.mav_xyz_mso1s
     amda_dir = [
-        amda_tree.Parameters.MAVEN.Ephemeris.maven_orb_marsobs1s.mav_xyz_mso1s,
-        amda_tree.Parameters.MAVEN.SWIA.mav_swia_kp.mav_swiakp_n
+        amda_tree.Parameters.MAVEN.SWIA.mav_swia_kp.mav_swiakp_n,
+        amda_tree.Parameters.MAVEN.SWIA.mav_swia_kp.mav_swiakp_t,
+        amda_tree.Parameters.MAVEN.SWIA.mavpds_swia_momboard.mav_swia_n
     ]
+    for dir in amda_dir:
+        species = dir.name
+        now = dt.datetime.now()
+        start_date, stop_date = amddh.retrieve_restrictive_time_boundaries([pos_dir, dir])
 
-    species = amda_dir[1].name
-    print(f'Species name: {species}')
-    now = dt.datetime.now()
-    start_date = dt.datetime(2016,1,1)
-    stop_date = dt.datetime(2018,12,30)
-    timedelta = dt.timedelta(days=25)
-    
+        filepath_name = dir.xmlid
+        filepath_plot = 'Plots'
+        filepath_data = 'Data'
+        filepath = 'Saved/'
 
-    start_date, stop_date = amddh.retrieve_restrictive_time_boundaries(amda_dir)
-    #stop_date = start_date + timedelta
-    filepath = 'Data_plots'
+        filepath += filepath_name+'/'
+        filepath_plot = filepath + filepath_plot
+        filepath_data = filepath + filepath_data
+        if not os.path.exists(filepath):
+            os.makedirs(filepath)
 
-    if not os.path.exists(filepath):
-        os.makedirs(filepath)
+        if not os.path.exists(filepath_data):
+            os.makedirs(filepath_data)
 
-    filename = f'{filepath}/oxygen_density__average_dens_plot_{start_date.strftime("%Y%m%d__%H%M%S")}--{stop_date.strftime("%Y%m%d__%H%M%S")}__created__{now.strftime("%Y%m%d__%H%M%S")}'
+        if not os.path.exists(filepath_plot):
+            os.makedirs(filepath_plot)
 
-    """     print('Getting files:')
-    sc_pos = spz.get_data(amda_dir[0], start_date, stop_date).to_dataframe()
-    dens  = spz.get_data(amda_dir[1], start_date, stop_date).to_dataframe()
-    dens = clean_dataframe(dens, species) """
+        radius = 4
+        n_bins = 50
 
-    print('Calculating max distance')
-    radius = 5
-    n_bins = 50
-
-    """     print('Merging frames')
-    pos_dens_df = merge_dataframes(sc_pos, dens)
-    print(f'has shape {pos_dens_df.shape}') """
-     
-    # Boundary edges for the bins/grids
-    xedges = np.linspace(-radius,radius,n_bins)
-    yedges = np.linspace(-radius,radius,n_bins)
-    zedges = np.linspace(-radius,radius,n_bins)
-    edges = (xedges, yedges, zedges)
-    edges_n_bins = (xedges.shape[0]-1,
-                yedges.shape[0]-1,
-                zedges.shape[0]-1
-                )
-
-
-    hist_xyz_nrmeas, hist_xyz_dens = fix_histogram_placeholder(edges_n_bins)
-
-    """     start_date = dt.datetime(2015,1,1)
-    stop_date = dt.datetime(2015,10,1)
-    tdt = dt.timedelta(weeks=104)
-    stop_date = start_date+tdt """
-    time_delta = dt.timedelta(weeks=4)
-    t0 = start_date
-    t1 = t0+time_delta
-    while t0 < stop_date:
-
-        sc_pos = spz.get_data(amda_dir[0], t0, t1).to_dataframe()
-        dens  = spz.get_data(amda_dir[1], t0, t1).to_dataframe()
-        dens = clean_dataframe(dens, species)
-
-        print('Merging frames')
-        pos_dens_df = merge_dataframes(sc_pos, dens)
-        print(f'has shape {pos_dens_df.shape}')
-
-        hist_xyz_nrmeas, hist_xyz_dens = sum_histogram_data(hist_xyz_nrmeas,
-                                                            hist_xyz_dens,
-                                                            pos_dens_df[species],
-                                                            pos_dens_df[['x', 'y', 'z']],
-                                                            edges)
+        filename_plot = f'{filepath_plot}/average_{start_date.strftime("%Y%m%d__%H%M%S")}--{stop_date.strftime("%Y%m%d__%H%M%S")}__created__{now.strftime("%Y%m%d__%H%M%S")}'
+        filename_histogram = f'{filepath_data}/average_{start_date.strftime("%Y%m%d__%H%M%S")}--{stop_date.strftime("%Y%m%d__%H%M%S")}__bins__{n_bins}__radius__{radius}'
         
-        t0 = t1
-        t1 += time_delta
-        # plotta sista fucking jäveln också
-    
-    plot_histogram_data(hist_xyz_nrmeas, hist_xyz_dens, species, edges, filename)
+        
+        """     print('Getting files:')
+        sc_pos = spz.get_data(amda_dir[0], start_date, stop_date).to_dataframe()
+        dens  = spz.get_data(amda_dir[1], start_date, stop_date).to_dataframe()
+        dens = clean_dataframe(dens, species) """
+
+        print('Calculating max distance')
+
+
+        """     print('Merging frames')
+        pos_dens_df = merge_dataframes(sc_pos, dens)
+        print(f'has shape {pos_dens_df.shape}') """
+        
+        # Boundary edges for the bins/grids
+        xedges = np.linspace(-radius,radius,n_bins)
+        yedges = np.linspace(-radius,radius,n_bins)
+        zedges = np.linspace(-radius,radius,n_bins)
+        redges = np.linspace(0,radius,n_bins)
+        edges = (xedges, yedges, zedges, redges)
+        edges_n_bins = (xedges.shape[0]-1,
+                    yedges.shape[0]-1,
+                    zedges.shape[0]-1
+                    )
+
+
+        hist_xyz_nrmeas, hist_xyz_dens = fix_histogram_placeholder(edges_n_bins)
+
+        """     start_date = dt.datetime(2015,1,1)
+        stop_date = dt.datetime(2015,10,1)
+        tdt = dt.timedelta(weeks=104)
+        stop_date = start_date+tdt """
+        time_delta = dt.timedelta(weeks=4)
+
+        tot = stop_date - start_date
+
+        t0 = start_date
+        t1 = t0+time_delta
+        iterations = 0
+        print(f'Generating between {start_date} and {stop_date}')
+        while t0 < stop_date:
+            part = t1 - start_date
+            progress = part/tot 
+            print(f'Current progress: {progress:.2f}')
+            print(f'Time: {t0} to {t1}')
+
+            sc_pos = spz.get_data(pos_dir, t0, t1).to_dataframe()
+            dens  = spz.get_data(dir, t0, t1).to_dataframe()
+            dens = clean_dataframe(dens, species)
+
+            print('Merging frames')
+            pos_dens_df = merge_dataframes(sc_pos, dens)
+            print(f'has shape {pos_dens_df.shape}')
+
+            print(f'Save to parquet chunk')
+            pos_dens_df.to_parquet(f'{filepath_data}/chunk_({iterations}).parquet')
+
+            # Spara denna bitch? Dvs, spara i chunks som förut..., men behåll chunksen?
+
+            print(f'Summing histogram data')
+            hist_xyz_nrmeas, hist_xyz_dens = sum_histogram_data(hist_xyz_nrmeas,
+                                                                hist_xyz_dens,
+                                                                pos_dens_df[species],
+                                                                pos_dens_df[['x', 'y', 'z']],
+                                                                edges)
+            
+
+            
+            t0 = t1
+            t1 += time_delta
+            iterations += 1
+            # plotta sista fucking jäveln också
+        
+        print(f'No iterations: {iterations}')
+        amddh.save_info(iterations,filepath_data)
+        amddh.combine_parquet_chunks(filepath_data+'/full',filepath_data+'/')
+        # It's here where we save the histogram data
+        print(f'Saving histogram locally')
+        amddh.save_histogram(hist_xyz_nrmeas, hist_xyz_dens, edges, filename_histogram)
+
+        print(f'plotting histogram')
+        plot_histogram_data(hist_xyz_nrmeas, hist_xyz_dens, species, edges, filename_plot)
+
+        print(f'loading histogram')
+        hist_xyz_nrmeas, hist_xyz_dens, edges = amddh.load_histogram(filename_histogram)
+
+        print(f'plotting histogram')
+        plot_histogram_data(hist_xyz_nrmeas, hist_xyz_dens, species, edges, filename_plot+'uwu')
 
     run_time_t2 = dt.datetime.now()
     delta = run_time_t2 - run_time_t0
