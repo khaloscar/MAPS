@@ -215,6 +215,20 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename)
 # maybe add a loop to do it daily or monthly or smth
 
 def main():
+    
+    radius = 4
+    n_bins = 25
+    
+    # Boundary edges for the bins/grids
+    xedges = np.linspace(-radius,radius,n_bins)
+    yedges = np.linspace(-radius,radius,n_bins)
+    zedges = np.linspace(-radius,radius,n_bins)
+    redges = np.linspace(0,radius,n_bins)
+    edges = (xedges, yedges, zedges, redges)
+    edges_n_bins = (xedges.shape[0]-1,
+                yedges.shape[0]-1,
+                zedges.shape[0]-1
+                )
 
     run_time_t0 = dt.datetime.now()
 
@@ -224,15 +238,22 @@ def main():
     """     amda_dir = [
         amda_tree.Parameters.Juno.Ephemeris.orbit_jupiter.juno_ephem_orb1.juno_eph_orb_jso,
         amda_tree.Parameters.Juno.JADE.L5___electrons.juno_jadel5_elecmom.jade_elecmom_n
+        amda_tree.Parameters.MAVEN.SWIA.mav_swia_kp.mav_swiakp_t,
+        amda_tree.Parameters.MAVEN.SWIA.mavpds_swia_momboard.mav_swia_n
     ] """
+
+
+    print(f'Initializing directories')
 
     pos_dir = amda_tree.Parameters.MAVEN.Ephemeris.maven_orb_marsobs1s.mav_xyz_mso1s
     amda_dir = [
         amda_tree.Parameters.MAVEN.SWIA.mav_swia_kp.mav_swiakp_n,
-        amda_tree.Parameters.MAVEN.SWIA.mav_swia_kp.mav_swiakp_t,
-        amda_tree.Parameters.MAVEN.SWIA.mavpds_swia_momboard.mav_swia_n
     ]
+    print('Initialization complete')
+
+
     for dir in amda_dir:
+        print(f'Collecting {dir.xmlid}')
         species = dir.name
         now = dt.datetime.now()
         start_date, stop_date = amddh.retrieve_restrictive_time_boundaries([pos_dir, dir])
@@ -254,11 +275,9 @@ def main():
         if not os.path.exists(filepath_plot):
             os.makedirs(filepath_plot)
 
-        radius = 4
-        n_bins = 50
 
         filename_plot = f'{filepath_plot}/average_{start_date.strftime("%Y%m%d__%H%M%S")}--{stop_date.strftime("%Y%m%d__%H%M%S")}__created__{now.strftime("%Y%m%d__%H%M%S")}'
-        filename_histogram = f'{filepath_data}/average_{start_date.strftime("%Y%m%d__%H%M%S")}--{stop_date.strftime("%Y%m%d__%H%M%S")}__bins__{n_bins}__radius__{radius}'
+        filename_histogram = f'{filepath_data}/__bins__{n_bins}__radius__{radius}'
         
         
         """     print('Getting files:')
@@ -272,18 +291,6 @@ def main():
         """     print('Merging frames')
         pos_dens_df = merge_dataframes(sc_pos, dens)
         print(f'has shape {pos_dens_df.shape}') """
-        
-        # Boundary edges for the bins/grids
-        xedges = np.linspace(-radius,radius,n_bins)
-        yedges = np.linspace(-radius,radius,n_bins)
-        zedges = np.linspace(-radius,radius,n_bins)
-        redges = np.linspace(0,radius,n_bins)
-        edges = (xedges, yedges, zedges, redges)
-        edges_n_bins = (xedges.shape[0]-1,
-                    yedges.shape[0]-1,
-                    zedges.shape[0]-1
-                    )
-
 
         hist_xyz_nrmeas, hist_xyz_dens = fix_histogram_placeholder(edges_n_bins)
 
@@ -299,54 +306,66 @@ def main():
         t1 = t0+time_delta
         iterations = 0
         print(f'Generating between {start_date} and {stop_date}')
-        while t0 < stop_date:
-            part = t1 - start_date
-            progress = part/tot 
-            print(f'Current progress: {progress:.2f}')
-            print(f'Time: {t0} to {t1}')
 
-            sc_pos = spz.get_data(pos_dir, t0, t1).to_dataframe()
-            dens  = spz.get_data(dir, t0, t1).to_dataframe()
-            dens = clean_dataframe(dens, species)
+        # If there is no histogram info present create:
+        if not os.path.exists(filename_histogram+'.npz'):
+            print(f'File: {filename_histogram}.npz does not exist\n',
+                  'Generating...')
+            while t0 < stop_date:
+                part = t1 - start_date
+                progress = part/tot 
+                print(f'Current progress: {progress:.2f}')
+                print(f'Time: {t0} to {t1}')
 
-            print('Merging frames')
-            pos_dens_df = merge_dataframes(sc_pos, dens)
-            print(f'has shape {pos_dens_df.shape}')
 
-            print(f'Save to parquet chunk')
-            pos_dens_df.to_parquet(f'{filepath_data}/chunk_({iterations}).parquet')
+                if os.path.exists(f'{filepath_data}/chunk_({iterations}).parquet'):
+                    pos_dens_df = amddh.load_parquet(f'{filepath_data}/chunk_({iterations}).parquet')
+                else:
+                    sc_pos = spz.get_data(pos_dir, t0, t1).to_dataframe()
+                    dens  = spz.get_data(dir, t0, t1).to_dataframe()
+                    dens = clean_dataframe(dens, species)
 
-            # Spara denna bitch? Dvs, spara i chunks som förut..., men behåll chunksen?
+                    print('Merging frames')
+                    pos_dens_df = merge_dataframes(sc_pos, dens)
+                    print(f'has shape {pos_dens_df.shape}')
 
-            print(f'Summing histogram data')
-            hist_xyz_nrmeas, hist_xyz_dens = sum_histogram_data(hist_xyz_nrmeas,
-                                                                hist_xyz_dens,
-                                                                pos_dens_df[species],
-                                                                pos_dens_df[['x', 'y', 'z']],
-                                                                edges)
-            
+                    print(f'Save to parquet chunk')
+                    pos_dens_df.to_parquet(f'{filepath_data}/chunk_({iterations}).parquet')
 
-            
-            t0 = t1
-            t1 += time_delta
-            iterations += 1
-            # plotta sista fucking jäveln också
+                # Spara denna bitch? Dvs, spara i chunks som förut..., men behåll chunksen?
+
+                print(f'Summing histogram data')
+                hist_xyz_nrmeas, hist_xyz_dens = sum_histogram_data(hist_xyz_nrmeas,
+                                                                    hist_xyz_dens,
+                                                                    pos_dens_df[species],
+                                                                    pos_dens_df[['x', 'y', 'z']],
+                                                                    edges)
+                
+
+                
+                t0 = t1
+                t1 += time_delta
+                iterations += 1
+            amddh.save_info(iterations,filepath_data)
+            if not os.path.exists(filepath_data+'/full.parquet'):
+                amddh.combine_parquet_chunks(filepath_data+'/full',filepath_data+'/')
         
-        print(f'No iterations: {iterations}')
-        amddh.save_info(iterations,filepath_data)
-        amddh.combine_parquet_chunks(filepath_data+'/full',filepath_data+'/')
-        # It's here where we save the histogram data
-        print(f'Saving histogram locally')
-        amddh.save_histogram(hist_xyz_nrmeas, hist_xyz_dens, edges, filename_histogram)
+            amddh.save_histogram(hist_xyz_nrmeas, hist_xyz_dens, edges, filename_histogram)
 
-        print(f'plotting histogram')
-        plot_histogram_data(hist_xyz_nrmeas, hist_xyz_dens, species, edges, filename_plot)
+        
 
         print(f'loading histogram')
         hist_xyz_nrmeas, hist_xyz_dens, edges = amddh.load_histogram(filename_histogram)
 
+        pos_dens_df = amddh.load_parquet(f'{filepath_data}/full.parquet')
+        hist_xyz_nrmeas, hist_xyz_dens = sum_histogram_data(hist_xyz_nrmeas,
+                                                                    hist_xyz_dens,
+                                                                    pos_dens_df[species],
+                                                                    pos_dens_df[['x', 'y', 'z']],
+                                                                    edges)
+
         print(f'plotting histogram')
-        plot_histogram_data(hist_xyz_nrmeas, hist_xyz_dens, species, edges, filename_plot+'uwu')
+        plot_histogram_data(hist_xyz_nrmeas, hist_xyz_dens, species, edges, filename_plot+'_fullbby')
 
     run_time_t2 = dt.datetime.now()
     delta = run_time_t2 - run_time_t0
