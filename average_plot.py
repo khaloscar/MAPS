@@ -71,7 +71,7 @@ def clean_dataframe(dataframe, parameter):
     dataframe = dataframe[dataframe[parameter].notna() & (dataframe[parameter] != 0)]
     return dataframe
 
-def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename):
+def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename, filepath_name):
 
     cmap = plt.cm.inferno
     cmap.set_under(cmap(0))
@@ -200,7 +200,7 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename)
     # cb.ax.set_yticklabels([timeDt_valid[0].strftime('%H:%M'), timeDt_valid[-1].strftime('%H:%M')])  # vertically oriented colorbar
     cb.set_label('some info')
 
-    plt.suptitle(f'infoinfo')
+    plt.suptitle(filepath_name)
 
     # Save figure
     fig.savefig(filename, bbox_inches='tight')
@@ -216,8 +216,8 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename)
 
 def main():
     
-    radius = 4
-    n_bins = 25
+    radius = 25
+    n_bins = 100
     
     # Boundary edges for the bins/grids
     xedges = np.linspace(-radius,radius,n_bins)
@@ -242,134 +242,158 @@ def main():
         amda_tree.Parameters.MAVEN.SWIA.mavpds_swia_momboard.mav_swia_n
     ] """
 
-
     print(f'Initializing directories')
 
-    pos_dir = amda_tree.Parameters.MAVEN.Ephemeris.maven_orb_marsobs1s.mav_xyz_mso1s
-    amda_dir = [
-        amda_tree.Parameters.MAVEN.SWIA.mav_swia_kp.mav_swiakp_n,
+    pos_dir_dir = [
+        amda_tree.Parameters.Cluster.Cluster_4.Ephemeris.clust4_orb_all.c4_xyz_gse,
+        amda_tree.Parameters.Cluster.Cluster_1.Ephemeris.clust1_orb_all.c1_xyz_gse,
+        amda_tree.Parameters.Cluster.Cluster_3.Ephemeris.clust3_orb_all.c3_xyz_gse
     ]
-    print('Initialization complete')
+
+    dir_clut4 = [
+        amda_tree.Parameters.Cluster.Cluster_4.CIS_CODIF.clust4_cis_prp.c4_h_dens,
+        amda_tree.Parameters.Cluster.Cluster_4.CIS_CODIF.clust4_cis_prp.c4_o_dens
+    ]
+
+    dir_clut1 = [
+        amda_tree.Parameters.Cluster.Cluster_1.CIS_CODIF.clust1_cis_prp.c1_h_dens,
+        amda_tree.Parameters.Cluster.Cluster_1.CIS_CODIF.clust1_cis_prp.c1_o_dens
+    ]
+
+    dir_clut3 = [
+        amda_tree.Parameters.Cluster.Cluster_3.CIS_CODIF.clust3_cis_prp.c3_h_dens,
+        amda_tree.Parameters.Cluster.Cluster_3.CIS_CODIF.clust3_cis_prp.c3_o_dens
+    ]
+
+    amda_dir_dir = [dir_clut4, dir_clut1, dir_clut3]
+
+    for indxx, pos_dir in enumerate(pos_dir_dir):
+        #pos_dir = amda_tree.Parameters.Cluster.Cluster_4.Ephemeris.clust4_orb_all.c4_xyz_gse
+        """         amda_dir = [
+            amda_tree.Parameters.Cluster.Cluster_4.CIS_CODIF.clust4_cis_prp.c4_h_dens,
+            amda_tree.Parameters.Cluster.Cluster_4.CIS_CODIF.clust4_cis_prp.c4_o_dens
+        ] """
+        print('Initialization complete')
+        amda_dir = amda_dir_dir[indxx]
+
+        for dir in amda_dir:
+            print(f'Collecting {dir.xmlid}')
+            species = dir.name
+            now = dt.datetime.now()
+            start_date, stop_date = amddh.retrieve_restrictive_time_boundaries([pos_dir, dir])
+
+            filepath_name = dir.xmlid
+            filepath_plot = 'Plots'
+            filepath_data = 'Data'
+            filepath = 'Saved/'
+
+            filepath += filepath_name+'/'
+            filepath_plot = filepath + filepath_plot
+            filepath_data = filepath + filepath_data
+            if not os.path.exists(filepath):
+                os.makedirs(filepath)
+
+            if not os.path.exists(filepath_data):
+                os.makedirs(filepath_data)
+
+            if not os.path.exists(filepath_plot):
+                os.makedirs(filepath_plot)
 
 
-    for dir in amda_dir:
-        print(f'Collecting {dir.xmlid}')
-        species = dir.name
-        now = dt.datetime.now()
-        start_date, stop_date = amddh.retrieve_restrictive_time_boundaries([pos_dir, dir])
+            filename_plot = f'{filepath_plot}/average_{start_date.strftime("%Y%m%d__%H%M%S")}--{stop_date.strftime("%Y%m%d__%H%M%S")}__created__{now.strftime("%Y%m%d__%H%M%S")}'
+            filename_histogram = f'{filepath_data}/__bins__{n_bins}__radius__{radius}'
+            
+            
+            """     print('Getting files:')
+            sc_pos = spz.get_data(amda_dir[0], start_date, stop_date).to_dataframe()
+            dens  = spz.get_data(amda_dir[1], start_date, stop_date).to_dataframe()
+            dens = clean_dataframe(dens, species) """
 
-        filepath_name = dir.xmlid
-        filepath_plot = 'Plots'
-        filepath_data = 'Data'
-        filepath = 'Saved/'
-
-        filepath += filepath_name+'/'
-        filepath_plot = filepath + filepath_plot
-        filepath_data = filepath + filepath_data
-        if not os.path.exists(filepath):
-            os.makedirs(filepath)
-
-        if not os.path.exists(filepath_data):
-            os.makedirs(filepath_data)
-
-        if not os.path.exists(filepath_plot):
-            os.makedirs(filepath_plot)
+            print('Calculating max distance')
 
 
-        filename_plot = f'{filepath_plot}/average_{start_date.strftime("%Y%m%d__%H%M%S")}--{stop_date.strftime("%Y%m%d__%H%M%S")}__created__{now.strftime("%Y%m%d__%H%M%S")}'
-        filename_histogram = f'{filepath_data}/__bins__{n_bins}__radius__{radius}'
-        
-        
-        """     print('Getting files:')
-        sc_pos = spz.get_data(amda_dir[0], start_date, stop_date).to_dataframe()
-        dens  = spz.get_data(amda_dir[1], start_date, stop_date).to_dataframe()
-        dens = clean_dataframe(dens, species) """
+            """     print('Merging frames')
+            pos_dens_df = merge_dataframes(sc_pos, dens)
+            print(f'has shape {pos_dens_df.shape}') """
 
-        print('Calculating max distance')
+            hist_xyz_nrmeas, hist_xyz_dens = fix_histogram_placeholder(edges_n_bins)
 
+            """     start_date = dt.datetime(2015,1,1)
+            stop_date = dt.datetime(2015,10,1)
+            tdt = dt.timedelta(weeks=104)
+            stop_date = start_date+tdt """
+            time_delta = dt.timedelta(weeks=4)
 
-        """     print('Merging frames')
-        pos_dens_df = merge_dataframes(sc_pos, dens)
-        print(f'has shape {pos_dens_df.shape}') """
+            tot = stop_date - start_date
 
-        hist_xyz_nrmeas, hist_xyz_dens = fix_histogram_placeholder(edges_n_bins)
+            t0 = start_date
+            t1 = t0+time_delta
+            iterations = 0
+            print(f'Generating between {start_date} and {stop_date}')
 
-        """     start_date = dt.datetime(2015,1,1)
-        stop_date = dt.datetime(2015,10,1)
-        tdt = dt.timedelta(weeks=104)
-        stop_date = start_date+tdt """
-        time_delta = dt.timedelta(weeks=4)
-
-        tot = stop_date - start_date
-
-        t0 = start_date
-        t1 = t0+time_delta
-        iterations = 0
-        print(f'Generating between {start_date} and {stop_date}')
-
-        # If there is no histogram info present create:
-        if not os.path.exists(filename_histogram+'.npz'):
-            print(f'File: {filename_histogram}.npz does not exist\n',
-                  'Generating...')
-            while t0 < stop_date:
-                part = t1 - start_date
-                progress = part/tot 
-                print(f'Current progress: {progress:.2f}')
-                print(f'Time: {t0} to {t1}')
+            # If there is no histogram info present create:
+            if not os.path.exists(filename_histogram+'.npz'):
+                print(f'File: {filename_histogram}.npz does not exist\n',
+                    'Generating...')
+                while t0 < stop_date:
+                    part = t1 - start_date
+                    progress = part/tot 
+                    print(f'Current progress: {progress:.2f}')
+                    print(f'Time: {t0} to {t1}')
 
 
-                if os.path.exists(f'{filepath_data}/chunk_({iterations}).parquet'):
-                    pos_dens_df = amddh.load_parquet(f'{filepath_data}/chunk_({iterations}).parquet')
-                else:
-                    sc_pos = spz.get_data(pos_dir, t0, t1).to_dataframe()
-                    dens  = spz.get_data(dir, t0, t1).to_dataframe()
-                    dens = clean_dataframe(dens, species)
+                    if os.path.exists(f'{filepath_data}/chunk_({iterations}).parquet'):
+                        pos_dens_df = amddh.load_parquet(f'{filepath_data}/chunk_({iterations}).parquet')
+                    else:
+                        sc_pos = spz.get_data(pos_dir, t0, t1).to_dataframe()
+                        dens  = spz.get_data(dir, t0, t1).to_dataframe()
+                        dens = clean_dataframe(dens, species)
 
-                    print('Merging frames')
-                    pos_dens_df = merge_dataframes(sc_pos, dens)
-                    print(f'has shape {pos_dens_df.shape}')
+                        print('Merging frames')
+                        pos_dens_df = merge_dataframes(sc_pos, dens)
+                        print(f'has shape {pos_dens_df.shape}')
 
-                    print(f'Save to parquet chunk')
-                    pos_dens_df.to_parquet(f'{filepath_data}/chunk_({iterations}).parquet')
+                        print(f'Save to parquet chunk')
+                        pos_dens_df.to_parquet(f'{filepath_data}/chunk_({iterations}).parquet')
 
-                # Spara denna bitch? Dvs, spara i chunks som förut..., men behåll chunksen?
+                    # Spara denna bitch? Dvs, spara i chunks som förut..., men behåll chunksen?
 
-                print(f'Summing histogram data')
-                hist_xyz_nrmeas, hist_xyz_dens = sum_histogram_data(hist_xyz_nrmeas,
-                                                                    hist_xyz_dens,
-                                                                    pos_dens_df[species],
-                                                                    pos_dens_df[['x', 'y', 'z']],
-                                                                    edges)
-                
+                    print(f'Summing histogram data')
+                    hist_xyz_nrmeas, hist_xyz_dens = sum_histogram_data(hist_xyz_nrmeas,
+                                                                        hist_xyz_dens,
+                                                                        pos_dens_df[species],
+                                                                        pos_dens_df[['x', 'y', 'z']],
+                                                                        edges)
+                    
 
-                
-                t0 = t1
-                t1 += time_delta
-                iterations += 1
-            amddh.save_info(iterations,filepath_data)
-            if not os.path.exists(filepath_data+'/full.parquet'):
-                amddh.combine_parquet_chunks(filepath_data+'/full',filepath_data+'/')
-        
-            amddh.save_histogram(hist_xyz_nrmeas, hist_xyz_dens, edges, filename_histogram)
+                    
+                    t0 = t1
+                    t1 += time_delta
+                    iterations += 1
+                amddh.save_info(iterations,filepath_data)
+                if not os.path.exists(filepath_data+'/full.parquet'):
+                    amddh.combine_parquet_chunks(filepath_data+'/full',filepath_data+'/')
+            
+                amddh.save_histogram(hist_xyz_nrmeas, hist_xyz_dens, edges, filename_histogram)
 
-        
+            
 
-        print(f'loading histogram')
-        hist_xyz_nrmeas, hist_xyz_dens, edges = amddh.load_histogram(filename_histogram)
+            print(f'loading histogram')
+            hist_xyz_nrmeas, hist_xyz_dens, edges = amddh.load_histogram(filename_histogram)
 
-        pos_dens_df = amddh.load_parquet(f'{filepath_data}/full.parquet')
-        hist_xyz_nrmeas, hist_xyz_dens = sum_histogram_data(hist_xyz_nrmeas,
-                                                                    hist_xyz_dens,
-                                                                    pos_dens_df[species],
-                                                                    pos_dens_df[['x', 'y', 'z']],
-                                                                    edges)
+            pos_dens_df = amddh.load_parquet(f'{filepath_data}/full.parquet')
+            hist_xyz_nrmeas, hist_xyz_dens = sum_histogram_data(hist_xyz_nrmeas,
+                                                                        hist_xyz_dens,
+                                                                        pos_dens_df[species],
+                                                                        pos_dens_df[['x', 'y', 'z']],
+                                                                        edges)
 
-        print(f'plotting histogram')
-        plot_histogram_data(hist_xyz_nrmeas, hist_xyz_dens, species, edges, filename_plot+'_fullbby')
+            print(f'plotting histogram')
+            plot_histogram_data(hist_xyz_nrmeas, hist_xyz_dens, species, edges, filename_plot, filepath_name)
 
-    run_time_t2 = dt.datetime.now()
-    delta = run_time_t2 - run_time_t0
-    print(f'Runtime: {delta}')
+        run_time_t2 = dt.datetime.now()
+        delta = run_time_t2 - run_time_t0
+        print(f'Runtime: {delta}')
 
 
 
