@@ -247,7 +247,8 @@ def main():
     pos_dir_dir = [
         amda_tree.Parameters.Cluster.Cluster_4.Ephemeris.clust4_orb_all.c4_xyz_gse,
         amda_tree.Parameters.Cluster.Cluster_1.Ephemeris.clust1_orb_all.c1_xyz_gse,
-        amda_tree.Parameters.Cluster.Cluster_3.Ephemeris.clust3_orb_all.c3_xyz_gse
+        amda_tree.Parameters.Cluster.Cluster_3.Ephemeris.clust3_orb_all.c3_xyz_gse,
+        amda_tree.Parameters.Juno.Ephemeris.orbit_jupiter.juno_ephem_orb1.juno_eph_orb_jso
     ]
 
     dir_clut4 = [
@@ -263,6 +264,15 @@ def main():
     dir_clut3 = [
         amda_tree.Parameters.Cluster.Cluster_3.CIS_CODIF.clust3_cis_prp.c3_h_dens,
         amda_tree.Parameters.Cluster.Cluster_3.CIS_CODIF.clust3_cis_prp.c3_o_dens
+    ]
+
+    dir_juno = [
+        amda_tree.Parameters.Juno.JADE.L5___electrons.juno_jadel5_elecmom.jade_elecmom_n,
+        amda_tree.Parameters.Juno.JADE.L5___electrons.juno_jadel5_elecmom.jade_elecmom_p,
+        amda_tree.Parameters.Juno.JADE.L5___electrons.juno_jadel5_elecmom.jade_elecmom_t,
+        amda_tree.Parameters.Juno.FGM.orbit_jupiter.juno_fgm_orbfull.juno_fgm_orbfull_mag,
+        amda_tree.Parameters.Juno.FGM.orbit_jupiter.juno_fgm_orb1.juno_fgm_orb1_mag,
+        amda_tree.Parameters.Juno.FGM.orbit_jupiter.juno_fgm_orb60.juno_fgm_orb60_mag,
     ]
 
     amda_dir_dir = [dir_clut4, dir_clut1, dir_clut3]
