@@ -1,157 +1,208 @@
 import pandas as pd
 import numpy as np
 import datetime as dt
-import speasy as spz
-import amda_datahandler as amddh
-amda_tree = spz.inventories.tree.amda
+from matplotlib import pyplot as plt
+import matplotlib.gridspec as gridspec
+import matplotlib.colors as mcolors
 
-""" start_date_density = dt.datetime(2015,1,1,0,1,1,15)
-start_date_pos = dt.datetime(2015,1,1,0,0,1)
-timeDelta = dt.timedelta(seconds=30)
-time_stamps_density = [start_date_density + f*timeDelta for f in range(10)]
-time_stamps_pos = [start_date_pos + f*timeDelta/30 for f in range(5*61)]
-pos = [f for f in range(len(time_stamps_pos))]
-density = [2*f for f in range(len(time_stamps_density))]
+def get_middle_idx_slice(n_edges):
 
-densities = pd.DataFrame({
-    "density": density
-})
-densities.index = time_stamps_density
+    if n_edges % 2 == 0:
 
-sc_pos = pd.DataFrame({
-    "pos": pos
-})
-sc_pos.index = time_stamps_pos
-
-df_merged = pd.merge_asof(
-    densities.sort_index(),
-    sc_pos.sort_index(),
-    left_index=True,
-    right_index=True,
-    direction='nearest'
-)
-
-print(df_merged.head)
-
-dens_extracted = []
-pos_extracted = []
-# Last density value will be missing
-# real shame dude
-for idxp in range(len(sc_pos.index)-1):
-    t0 = sc_pos.index[idxp]
-    t1 = sc_pos.index[idxp+1]
+        edge_slice = slice(n_edges//2-1, n_edges//2+1)
+        bin_slice = slice(edge_slice.start,edge_slice.stop-1)
     
-    for idxd in range(len(densities.index)):
-        if t0 <= densities.index[idxd] < t1:
-            dens_extracted.append(densities.density[idxd])
-            pos_extracted.append(sc_pos.pos[t0])
+    elif n_edges % 2 == 1:
 
-print(dens_extracted)
-print(pos_extracted)
+        edge_slice = slice(n_edges//2-1, n_edges//2+2)
+        bin_slice = slice(edge_slice.start,edge_slice.stop-1)
 
-amda_dir = [
-    amda_tree.Parameters.Juno.Ephemeris.orbit_jupiter.juno_ephem_orb1.juno_eph_orb_jso,
-    amda_tree.Parameters.Juno.JADE.L5___electrons.juno_jadel5_elecmom.jade_elecmom_n
-]
+    return edge_slice, bin_slice
 
-amda_dir = [
-    amda_tree.Parameters.MAVEN.Ephemeris.maven_orb_marsobs1s.mav_xyz_mso1s,
-    amda_tree.Parameters.Juno.JADE.L5___electrons.juno_jadel5_elecmom.jade_elecmom_n
-]
+def add_thickness(edge_slice, bin_slice, thickness=1, direction='up'):
+    if direction == 'up':
+        print('up')
+        edge_slice = slice(edge_slice.start, edge_slice.stop+thickness)
+        bin_slice = slice(bin_slice.start, bin_slice.stop+thickness)
 
-start_date, stop_date = amddh.retrieve_restrictive_time_boundaries(amda_dir)
-time_delta = dt.timedelta(hours=24)
-start_date = stop_date-time_delta
-
-sc_pos = spz.get_data(amda_dir[0], start_date-time_delta/24, stop_date+time_delta/24).to_dataframe()
-dens  = spz.get_data(amda_dir[1], start_date, stop_date).to_dataframe()
-
-print(sc_pos.head())
-print(sc_pos.info())
-print()
-print()
-print(dens.head())
-print(dens.info())
-
-df_merged = pd.merge_asof(
-    dens.sort_index(),
-    sc_pos.sort_index(),
-    left_index=True,
-    right_index=True,
-    allow_exact_matches=True,
-    direction='nearest'
-)
-
-df_merged['radius'] = (df_merged['x']**2 + df_merged['y']**2 + df_merged['z']**2)**0.5
-radius = spz.get_data(amda_tree.Parameters.Juno.Ephemeris.orbit_jupiter.juno_ephem_orb1.juno_eph_orb_r, start_date, stop_date).to_dataframe()
-df_merged = pd.merge_asof(
-    df_merged.sort_index(),
-    radius.sort_index(),
-    left_index=True,
-    right_index=True,
-    direction='nearest'
-)
-
-print()
-print()
-print(df_merged.head())
-print(df_merged.info())
-print(df_merged[['x', 'y', 'z']])
-
-# Får fram densitet o position för denna, dunderenkelt """
-
-def time_range_generator(start_date, stop_date):
-    # Generates time range boundaries, as of now, yearly
-    # ex: data available 2017/06/06 to 2019/06/06
-    # gives 2017/06/06, 2018/01/01, 2019/01/01, 2019/06/06
-    current_yr = start_date.year
-    yrs =[start_date]
-    while current_yr < stop_date.year:
-        next_year = pd.to_datetime(f"{current_yr + 1}-01-01").tz_localize(start_date.tzinfo)
-        yrs.append(next_year)
-        current_yr += 1
-    yrs.append(stop_date)
-    print(f'Time boundaries: \n{yrs}')
-    return yrs
-
-def time_range_generator(start_date, stop_date, step='year'):
-    # Generates time range boundaries based on the step: 'year', 'month', or 'day'
-    if start_date > stop_date:
-        raise ValueError("start_date must be before stop_date")
-    
-    current = start_date
-    boundaries = [start_date]
-
-    while current < stop_date:
-        if step == 'year':
-            next_step = pd.Timestamp(year=current.year + 1, month=1, day=1, tz=current.tzinfo)
-        elif step == 'month':
-            next_month = current.month + 1 if current.month < 12 else 1
-            next_year = current.year if current.month < 12 else current.year + 1
-            next_step = pd.Timestamp(year=next_year, month=next_month, day=1, tz=current.tzinfo)
-        elif step == 'day':
-            next_step = current + pd.Timedelta(days=1)
-        else:
-            raise ValueError("step must be 'year', 'month', or 'day'")
         
-        if next_step >= stop_date:
-            break
-        boundaries.append(next_step)
-        current = next_step
+    if direction == 'down':
+        print('down')
+        edge_slice = slice(edge_slice.start-thickness, edge_slice.stop)
+        bin_slice = slice(bin_slice.start-thickness, bin_slice.stop)
 
-    boundaries.append(stop_date)
-    print(f"Time boundaries ({step}s):\n{boundaries}")
-    return boundaries
+    if direction == 'sym':
+        print('sym')
+        edge_slice = slice(edge_slice.start-thickness, edge_slice.stop+thickness)
+        bin_slice = slice(bin_slice.start-thickness, bin_slice.stop+thickness)
+    return edge_slice, bin_slice
 
-test_Date = dt.datetime(2017,1,12,13,55)
+def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename, filepath_name):
 
-print(getattr(test_Date, 'year'))
-print(getattr(test_Date, 'month'))
-print(getattr(test_Date, 'day'))
-print(getattr(test_Date, 'hour'))
-print(getattr(test_Date, 'minute'))
 
-start = dt.datetime(2017,2,3,2)
-stop = dt.datetime(2017,2,6,6)
 
-time_range_generator(start, stop, step='day')
+    cmap = plt.cm.inferno
+    cmap.set_under(cmap(0))
+    
+    xedges, yedges, zedges, redges = edges[0], edges[1], edges[2], edges[3]
+    # Fix average density for each histogram and then extract for plotting
+
+    histogram_xyz_average = hist_xyz_den / hist_xyz_nrmeas
+    print(histogram_xyz_average.shape)
+    idx = int(xedges.shape[0] / 2)
+    idy = int(yedges.shape[0] / 2)
+    idz = int(zedges.shape[0] / 2)
+
+    # Skapa meshgrid av y- och z-edges för att beräkna r
+    Yc, Zc = np.meshgrid((yedges[:-1] + yedges[1:]) / 2, (zedges[:-1] + zedges[1:]) / 2, indexing='ij')
+    R = np.sqrt(Yc**2 + Zc**2)
+
+    # Initiera hist_xr
+    hist_xr = np.full((len(xedges)-1, len(redges)-1), np.nan)
+
+    # Gå igenom varje x-bin
+    for ix in range(histogram_xyz_average.shape[0]):
+        slice_yz = histogram_xyz_average[ix, :, :]  # yz-slice vid fix x
+        r_vals = R.flatten()
+        dens_vals = slice_yz.flatten()
+
+        # Filtrera bort NaN
+        valid = ~np.isnan(dens_vals)
+        r_vals = r_vals[valid]
+        dens_vals = dens_vals[valid]
+
+        # Bin densities i r för varje x-bin
+        if len(r_vals) > 0:
+            hist_sum, _ = np.histogram(r_vals, bins=redges, weights=dens_vals)
+            hist_count, _ = np.histogram(r_vals, bins=redges)
+            with np.errstate(invalid='ignore', divide='ignore'):
+                hist_avg = hist_sum / hist_count
+            hist_xr[ix, :] = hist_avg
+
+   
+
+    """     hist_xy = histogram_xyz_average[:, :, idz]
+    hist_xz = histogram_xyz_average[:, idy, :]
+    hist_yz = histogram_xyz_average[idx, :, :] """
+
+    """     hist_xy = np.nanmean(histogram_xyz_average[:, :, idz-t:idz+t], axis=2)
+    hist_xz = np.nanmean(histogram_xyz_average[:, idy-t:idy+t, :], axis=1)
+    hist_yz = np.nanmean(histogram_xyz_average[idx-t:idx+t, :, :], axis=0) """
+
+    hist_xy = histogram_xyz_average[:, :, idz]
+    hist_xz = histogram_xyz_average[:, idy, :]
+    hist_yz = histogram_xyz_average[idx, :, :]
+
+    print(hist_xy.shape)
+
+
+    # Use the smallest/largest density as colorbar
+    """     cmin = np.nanmin([np.nanmin(hist_xy[hist_xy > 0.]), np.nanmin(hist_xz[hist_xz > 0.]), np.nanmin(hist_yz[hist_yz > 0.])])
+    cmax = np.nanmax([np.nanmax(hist_xy[hist_xy > 0.]), np.nanmax(hist_xz[hist_xz > 0.]), np.nanmax(hist_yz[hist_yz > 0.])]) """
+
+    
+    """     cmin = np.nanmin([safe_nanmin(hist_xy), safe_nanmin(hist_xz), safe_nanmin(hist_yz)])
+    cmax = np.nanmax([safe_nanmax(hist_xy), safe_nanmax(hist_xz), safe_nanmax(hist_yz)]) """
+
+    vals = np.hstack((
+        hist_xy[hist_xy > 0],
+        hist_xz[hist_xz > 0],
+        hist_yz[hist_yz > 0],
+        hist_xr[hist_xr > 0]
+    ))
+
+    if vals.size == 0:
+        print(f'INGEN DATA O PLOTTA')
+        return
+    
+    cmin, cmax = vals.min(), vals.max()
+
+    # Plot all the data
+    fig = plt.figure(figsize=(14, 10))
+    gs = gridspec.GridSpec(ncols=3, nrows=2, figure=fig, width_ratios=[10, 10, 1])
+
+    ax_xy = fig.add_subplot(gs[0, 0])
+    ax_xz = fig.add_subplot(gs[1, 0])
+    ax_yz = fig.add_subplot(gs[0, 1])
+    ax_xr = fig.add_subplot(gs[1, 1])
+    ax_cb = fig.add_subplot(gs[:, -1])
+
+    n_edges = len(yedges)
+    edges_idx_sice, bin_idx_slice =  get_middle_idx_slice(n_edges)
+    edges_idx_sice, bin_idx_slice = add_thickness(edges_idx_sice, bin_idx_slice, thickness=2, direction='sym')
+
+    idx = np.where(xedges>0)[0]
+    print(hist_xy.T.shape)
+    print(f'lola {idx-1}')
+    ax_xy.pcolormesh(xedges[idx], yedges[edges_idx_sice], hist_xy.T[bin_idx_slice,idx[:-1]], cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax))
+    ax_xz.pcolormesh(xedges, zedges, hist_xy.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax))
+    ax_yz.pcolormesh(yedges, zedges, hist_yz.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax))
+    ax_xr.pcolormesh(xedges, redges, hist_xr.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax))
+
+    """     hp.add_bow_shock_magnetopause_plot(ax_xy)
+    hp.add_bow_shock_magnetopause_plot(ax_xz)
+    hp.add_bow_shock_magnetopause_plot_yz(ax_yz)
+    # hp.add_bow_shock_magnetopause_plot(ax_xr) """
+
+    ax_xy.set_xlabel('MSO X [RM]')
+    ax_xz.set_xlabel('MSO X [RM]')
+    ax_yz.set_xlabel('MSO Y [RM]')
+    ax_xr.set_xlabel('MSO X [RM]')
+
+    ax_xy.set_ylabel('MSO Y [RM]')
+    ax_xz.set_ylabel('MSO Z [RM]')
+    ax_yz.set_ylabel('MSO Z [RM]')
+    ax_xr.set_ylabel('MSO R [RM]')
+
+    # Fix the ranges of the orbital plots
+    ax_xy.set_xlim(xedges[0], xedges[-1])
+    ax_xy.set_ylim(yedges[0], yedges[-1])
+
+    ax_xz.set_xlim(xedges[0], xedges[-1])
+    ax_xz.set_ylim(zedges[0], zedges[-1])
+
+    ax_yz.set_xlim(yedges[0], yedges[-1])
+    ax_yz.set_ylim(zedges[0], zedges[-1])
+
+    ax_xr.set_xlim(xedges[0], xedges[-1])
+    ax_xr.set_ylim(redges[0], redges[-1])
+
+    for ax in [ax_xy, ax_xz, ax_yz, ax_xr]:  # , ax_xr
+        ax.set_aspect('equal')
+
+    # Add a colorbar with the counts
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax))
+    sm.set_array([])
+    cb = plt.colorbar(sm, cax=ax_cb, orientation='vertical')
+    # cb.ax.set_yticklabels([timeDt_valid[0].strftime('%H:%M'), timeDt_valid[-1].strftime('%H:%M')])  # vertically oriented colorbar
+    cb.set_label('some info')
+
+    plt.suptitle(filepath_name)
+
+    # Save figure
+    plt.show()
+    fig.savefig(filename, bbox_inches='tight')
+    plt.close('all')
+
+def load_histogram(filename):
+    data = np.load(f'{filename}.npz')
+    hist_nrmeas = data['hist_nrmeas']
+    hist_den = data['hist_den']
+    edges = (
+    data['xedges'],
+    data['yedges'],
+    data['zedges'],
+    data['redges'])
+    return hist_nrmeas, hist_den, edges
+
+radius = 5
+n_bins = 50
+
+species = 'olabola'
+
+filename_histogram = f'Saved/c3_h_dens/Data/__bins__50__radius__25'
+
+hist_xyz_nrmeas, hist_xyz_dens, edges = load_histogram(filename_histogram)
+
+plot_histogram_data(hist_xyz_nrmeas, hist_xyz_dens, species, edges, 'abobror', 'ngtbgt')
+

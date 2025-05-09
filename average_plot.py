@@ -18,6 +18,38 @@ def fix_histogram_placeholder(edges_n_bins):
     hist_xyz_den = np.zeros(edges_n_bins)
     return hist_xyz_nrmeas, hist_xyz_den
 
+def get_middle_idx_slice(n_edges):
+
+    if n_edges % 2 == 0:
+
+        edge_slice = slice(n_edges//2-1, n_edges//2+1)
+        bin_slice = slice(edge_slice.start,edge_slice.stop-1)
+    
+    elif n_edges % 2 == 1:
+
+        edge_slice = slice(n_edges//2-1, n_edges//2+2)
+        bin_slice = slice(edge_slice.start,edge_slice.stop-1)
+
+    return edge_slice, bin_slice
+
+def add_thickness(edge_slice, bin_slice, thickness=1, direction='up'):
+    if direction == 'up':
+        print('up')
+        edge_slice = slice(edge_slice.start, edge_slice.stop+1)
+        bin_slice = slice(bin_slice.start, bin_slice.stop+1)
+
+        
+    if direction == 'down':
+        print('down')
+        edge_slice = slice(edge_slice.start-1, edge_slice.stop)
+        bin_slice = slice(bin_slice.start-1, bin_slice.stop)
+
+    if direction == 'sym':
+        print('sym')
+        edge_slice = slice(edge_slice.start-1, edge_slice.stop+1)
+        bin_slice = slice(bin_slice.start-1, bin_slice.stop+1)
+    return edge_slice, bin_slice
+
 def parameter_to_histogram(dataframe, parameter):
 
     # Remove Nan, None and zero-values from dataframe
@@ -124,6 +156,8 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename,
     hist_xy = histogram_xyz_average[:, :, idz]
     hist_xz = histogram_xyz_average[:, idy, :]
     hist_yz = histogram_xyz_average[idx, :, :]
+
+    print(hist_xy.shape)
 
 
     # Use the smallest/largest density as colorbar
@@ -275,7 +309,7 @@ def main():
         amda_tree.Parameters.Juno.FGM.orbit_jupiter.juno_fgm_orb60.juno_fgm_orb60_mag,
     ]
 
-    amda_dir_dir = [dir_clut4, dir_clut1, dir_clut3]
+    amda_dir_dir = [dir_clut4, dir_clut1, dir_clut3, dir_juno]
 
     for indxx, pos_dir in enumerate(pos_dir_dir):
         #pos_dir = amda_tree.Parameters.Cluster.Cluster_4.Ephemeris.clust4_orb_all.c4_xyz_gse
@@ -381,8 +415,8 @@ def main():
                     t1 += time_delta
                     iterations += 1
                 amddh.save_info(iterations,filepath_data)
-                if not os.path.exists(filepath_data+'/full.parquet'):
-                    amddh.combine_parquet_chunks(filepath_data+'/full',filepath_data+'/')
+                #if not os.path.exists(filepath_data+'/full.parquet'):
+                #    amddh.combine_parquet_chunks(filepath_data+'/full',filepath_data+'/')
             
                 amddh.save_histogram(hist_xyz_nrmeas, hist_xyz_dens, edges, filename_histogram)
 
@@ -391,12 +425,12 @@ def main():
             print(f'loading histogram')
             hist_xyz_nrmeas, hist_xyz_dens, edges = amddh.load_histogram(filename_histogram)
 
-            pos_dens_df = amddh.load_parquet(f'{filepath_data}/full.parquet')
-            hist_xyz_nrmeas, hist_xyz_dens = sum_histogram_data(hist_xyz_nrmeas,
-                                                                        hist_xyz_dens,
-                                                                        pos_dens_df[species],
-                                                                        pos_dens_df[['x', 'y', 'z']],
-                                                                        edges)
+            #pos_dens_df = amddh.load_parquet(f'{filepath_data}/full.parquet')
+            #hist_xyz_nrmeas, hist_xyz_dens = sum_histogram_data(hist_xyz_nrmeas,
+            #                                                            hist_xyz_dens,
+            #                                                            pos_dens_df[species],
+            #                                                            pos_dens_df[['x', 'y', 'z']],
+            #                                                            edges)
 
             print(f'plotting histogram')
             plot_histogram_data(hist_xyz_nrmeas, hist_xyz_dens, species, edges, filename_plot, filepath_name)

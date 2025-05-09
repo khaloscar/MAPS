@@ -7,6 +7,3 @@ import os
 from matplotlib import pyplot as plt
 import matplotlib.gridspec as gridspec
 import numpy as np
-
-amda_tree = spz.inventories.tree.amda
-
