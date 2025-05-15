@@ -123,6 +123,7 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename,
 
     # Initiera hist_xr
     hist_xr = np.full((len(xedges)-1, len(redges)-1), np.nan)
+    hist_xr_nr = np.full((len(xedges)-1, len(redges)-1), np.nan)
 
     # Gå igenom varje x-bin
     for ix in range(histogram_xyz_average.shape[0]):
@@ -142,6 +143,7 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename,
             with np.errstate(invalid='ignore', divide='ignore'):
                 hist_avg = hist_sum / hist_count
             hist_xr[ix, :] = hist_avg
+            hist_xr_nr[ix,:] = hist_count
 
    
 
@@ -156,6 +158,16 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename,
     hist_xy = histogram_xyz_average[:, :, idz]
     hist_xz = histogram_xyz_average[:, idy, :]
     hist_yz = histogram_xyz_average[idx, :, :]
+    
+
+    t = 20
+    hist_xy = np.nanmean(histogram_xyz_average[:, :, idz-t:idz+t], axis=2)
+    hist_xz = np.nanmean(histogram_xyz_average[:, idy-t:idy+t, :], axis=1)
+    hist_yz = np.nanmean(histogram_xyz_average[idx-t:idx+t, :, :], axis=0)
+
+    hist_xy_nmeas = np.nanmean(hist_xyz_nrmeas[:, :, idz-t:idz+t], axis=2)
+    hist_xz_nmeas = np.nanmean(hist_xyz_nrmeas[:, idy-t:idy+t, :], axis=1)
+    hist_yz_nmeas = np.nanmean(hist_xyz_nrmeas[idx-t:idx+t, :, :], axis=0)
 
     print(hist_xy.shape)
 
@@ -185,23 +197,38 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename,
     fig = plt.figure(figsize=(14, 10))
     gs = gridspec.GridSpec(ncols=3, nrows=2, figure=fig, width_ratios=[10, 10, 1])
 
-    ax_xy = fig.add_subplot(gs[0, 0])
+    """     ax_xy = fig.add_subplot(gs[0, 0])
     ax_xz = fig.add_subplot(gs[1, 0])
     ax_yz = fig.add_subplot(gs[0, 1])
     ax_xr = fig.add_subplot(gs[1, 1])
+    ax_cb = fig.add_subplot(gs[:, -1]) """
+
+    ax_xy = fig.add_subplot(gs[0, 0])
+    ax_xr = fig.add_subplot(gs[1, 0])
+    ax_xy_nmeas = fig.add_subplot(gs[0, 1])
+    ax_xr_nmeas = fig.add_subplot(gs[1, 1])
     ax_cb = fig.add_subplot(gs[:, -1])
+
+
+    ax_xy.pcolormesh(xedges, yedges, hist_xy.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax), shading='auto')
+    ax_xr.pcolormesh(xedges, redges, hist_xr.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax),shading='auto')
+    ax_xy_nmeas.pcolormesh(xedges, yedges, hist_xy_nmeas.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax), shading='auto')
+    ax_xr_nmeas.pcolormesh(xedges, redges, hist_xr_nr.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax),shading='auto')
+
+
 
 
     redge_slice, r_bin_slice = get_middle_idx_slice(len(redges))
     #redge_slice, r_bin_slice = add_thickness(redge_slice, r_bin_slice, thickness=2, direction='up')
     xedge_slice, x_bin_slice = get_middle_idx_slice(len(xedges))
-    ax_xy.pcolormesh(xedges, yedges, hist_xy.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax), shading='auto')
+    """ ax_xy.pcolormesh(xedges, yedges, hist_xy.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax), shading='auto')
     ax_xz.pcolormesh(xedges, zedges, hist_xz.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax),shading='auto')
     ax_yz.pcolormesh(yedges, zedges, hist_yz.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax),shading='auto')
-    ax_xr.pcolormesh(xedges[xedge_slice.start+4:-1], redges[2:redge_slice.stop-2], hist_xr.T[2:r_bin_slice.stop-2,x_bin_slice.start+4:-1], cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax),shading='auto')
-    avgavg = np.nanmean(hist_xr.T[2:r_bin_slice.stop-2,x_bin_slice.start+4:-1])
+    ax_xr.pcolormesh(xedges[xedge_slice.start+14:-1], redges[2:redge_slice.stop-2], hist_xr.T[2:r_bin_slice.stop-2,x_bin_slice.start+14:-1], cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax),shading='auto') """
+    avgavg = np.nanmean(hist_xr.T[2:r_bin_slice.stop-2,x_bin_slice.start+14:-1])
     if filepath_name == 'gll_pls_fitt':
-        print(f'Avg for {filepath_name}: {avgavg*11604.5250061657/10**6} MK')
+        avgavg = avgavg*11604.5250061657/10**6
+        print(f'Avg for {filepath_name}: {avgavg} MK')
     else:
         print(f'Avg for {filepath_name}: {avgavg}')
     """     hp.add_bow_shock_magnetopause_plot(ax_xy)
@@ -209,46 +236,48 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename,
     hp.add_bow_shock_magnetopause_plot_yz(ax_yz)
     # hp.add_bow_shock_magnetopause_plot(ax_xr) """
 
-    ax_xy.set_xlabel('MSO X [RM]')
-    ax_xz.set_xlabel('MSO X [RM]')
-    ax_yz.set_xlabel('MSO Y [RM]')
-    ax_xr.set_xlabel('MSO X [RM]')
 
-    ax_xy.set_ylabel('MSO Y [RM]')
-    ax_xz.set_ylabel('MSO Z [RM]')
-    ax_yz.set_ylabel('MSO Z [RM]')
-    ax_xr.set_ylabel('MSO R [RM]')
+
+    ax_xy.set_xlabel(r'$JSO\ X\ [\mathrm{R_J}]$')
+    ax_xy_nmeas.set_xlabel(r'$JSO\ X\ [\mathrm{R_J}]$')
+    ax_xr_nmeas.set_xlabel(r'$JSO\ X\ [\mathrm{R_J}]$')
+    ax_xr.set_xlabel(r'$JSO\ X\ [\mathrm{R_J}]$')
+
+    ax_xy.set_ylabel(r'$JSO\ Y\ [\mathrm{R_J}]$')
+    ax_xy_nmeas.set_ylabel(r'$JSO\ Y\ [\mathrm{R_J}]$')
+    ax_xr_nmeas.set_ylabel(r'$JSO\ R\ [\mathrm{R_J}]$')
+    ax_xr.set_ylabel(r'$JSO\ R\ [\mathrm{R_J}]$')
 
     # Fix the ranges of the orbital plots
     ax_xy.set_xlim(xedges[0], xedges[-1])
     ax_xy.set_ylim(yedges[0], yedges[-1])
 
-    ax_xz.set_xlim(xedges[0], xedges[-1])
-    ax_xz.set_ylim(zedges[0], zedges[-1])
+    ax_xy_nmeas.set_xlim(xedges[0], xedges[-1])
+    ax_xy_nmeas.set_ylim(zedges[0], zedges[-1])
 
-    ax_yz.set_xlim(yedges[0], yedges[-1])
-    ax_yz.set_ylim(zedges[0], zedges[-1])
+    ax_xr_nmeas.set_xlim(xedges[0], xedges[-1])
+    ax_xr_nmeas.set_ylim(redges[0], redges[-1])
 
     ax_xr.set_xlim(xedges[0], xedges[-1])
     ax_xr.set_ylim(redges[0], redges[-1])
 
     print(f'Filepath name: {eph_name}')
-    for ax in [ax_xy, ax_xz, ax_xr]:  # , ax_xr
+    for ax in [ax_xy, ax_xy_nmeas,ax_xr_nmeas, ax_xr]:  # , ax_xr
         ax.set_aspect('equal')
         if eph_name == 'juno_eph_orb_jso' or eph_name == 'gll_xyz_jso':
             hp_planets.add_jupiter_bow_shock_magnetopause_plot(ax, alpha=0.5, labels=True)
         if eph_name == 'cass_xyz_kso_1s':
             hp_planets.add_saturn_bow_shock_magnetopause_plot(ax, alpha=0.5, labels=True)
     
-    if eph_name == 'juno_eph_orb_jso' or eph_name == 'gll_xyz_jso':
+    """ if eph_name == 'juno_eph_orb_jso' or eph_name == 'gll_xyz_jso':
 
-        ax_yz.set_aspect('equal')
-        hp_planets.add_planet_in_plot(ax_yz)
+        ax_xy_nmeas.set_aspect('equal')
+        hp_planets.add_planet_in_plot(ax_xy_nmeas)
 
         ax_xr.legend()
 
         # Fix the ranges of the orbital plots
-        hp_planets.fix_spatial_plot_limits(x_lims=[-180, 180], y_lims=[-180, 180], z_lims=[-180, 180], r_lims=[0, 180], ax_mso_xy=ax_xy, ax_mso_xz=ax_xz, ax_mso_yz=ax_yz, ax_mso_xr=ax_xr)
+        hp_planets.fix_spatial_plot_limits(x_lims=[-100, 100], y_lims=[-100, 100], z_lims=[-100, 100], r_lims=[0, 100], ax_mso_xy=ax_xy, ax_mso_xz=ax_xz, ax_mso_yz=ax_yz, ax_mso_xr=ax_xr)
 
     if eph_name == 'cass_xyz_kso_1s':
         ax_yz.set_aspect('equal')
@@ -257,7 +286,7 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename,
         ax_xr.legend()
 
         # Fix the ranges of the orbital plots
-        hp_planets.fix_spatial_plot_limits(x_lims=[-35, 35], y_lims=[-35, 35], z_lims=[-35, 35], r_lims=[0, 35], ax_mso_xy=ax_xy, ax_mso_xz=ax_xz, ax_mso_yz=ax_yz, ax_mso_xr=ax_xr)
+        hp_planets.fix_spatial_plot_limits(x_lims=[-35, 35], y_lims=[-35, 35], z_lims=[-35, 35], r_lims=[0, 35], ax_mso_xy=ax_xy, ax_mso_xz=ax_xz, ax_mso_yz=ax_yz, ax_mso_xr=ax_xr) """
 
 
     # Add a colorbar with the counts
@@ -272,6 +301,7 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename,
     # Save figure
     fig.savefig(filename, bbox_inches='tight')
     plt.close('all')
+    return (avgavg, filepath_name)
 
 
 # Basic logic 
@@ -283,8 +313,9 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename,
 
 def main():
     
+    avg_val_array = []
     radius = 100
-    n_bins = 15
+    n_bins = 51
     
     # Boundary edges for the bins/grids
     xedges = np.linspace(-radius,radius,n_bins)
@@ -318,7 +349,7 @@ def main():
     pos_dir_dir = [
         #amda_tree.Parameters.Cassini.Ephemeris__Cassini.orbit_saturn.cass_orb_1s.cass_xyz_kso_1s,
         amda_tree.Parameters.Galileo.Ephemeris___Galileo.gll_orbit_jup.gll_xyz_jso,
-        #amda_tree.Parameters.Juno.Ephemeris.orbit_jupiter.juno_ephem_orb1.juno_eph_orb_jso,
+        amda_tree.Parameters.Juno.Ephemeris.orbit_jupiter.juno_ephem_orb1.juno_eph_orb_jso,
         #amda_tree.Parameters.Cassini.Ephemeris__Cassini.cass_ephem_eqt.cass_xyz_eqt
     ]
 
@@ -365,9 +396,9 @@ def main():
 
     dir_galileo = [
         amda_tree.Parameters.Galileo.MAG.gll_mag_msreal.gmmr_magnitude,
-        #amda_tree.Parameters.Galileo.PLS.gll_pls_mom.gll_pls_momdens,
-        #amda_tree.Parameters.Galileo.PLS.gll_pls_mom.gll_pls_momtemp,
-        #amda_tree.Parameters.Galileo.PLS.gll_pls_mom.gll_pls_momvmag,
+        amda_tree.Parameters.Galileo.PLS.gll_pls_mom.gll_pls_momdens,
+        amda_tree.Parameters.Galileo.PLS.gll_pls_mom.gll_pls_momtemp,
+        amda_tree.Parameters.Galileo.PLS.gll_pls_mom.gll_pls_momvmag,
         amda_tree.Parameters.Galileo.PLS.gll_pls_fit.gll_pls_fitn,
         amda_tree.Parameters.Galileo.PLS.gll_pls_fit.gll_pls_fitt,
         amda_tree.Parameters.Galileo.PLS.gll_pls_fit.gll_pls_fitv,
@@ -377,7 +408,7 @@ def main():
 
     dir_maven = [amda_tree.Parameters.MAVEN.SWIA.mav_swia_kp.mav_swiakp_n]
     #amda_dir_dir = [dir_cassini, dir_galileo, dir_juno, dir_cassini_jup]
-    amda_dir_dir = [dir_galileo] 
+    amda_dir_dir = [dir_galileo, dir_juno] 
     #amda_dir_dir = [dir_maven]
 
 
@@ -509,7 +540,13 @@ def main():
             #                                                            edges)
 
             print(f'plotting histogram')
-            plot_histogram_data(hist_xyz_nrmeas, hist_xyz_dens, species, edges, filename_plot, filepath_name, (n_bins, radius), eph_name)
+            avg_val = plot_histogram_data(hist_xyz_nrmeas, hist_xyz_dens, species, edges, filename_plot, filepath_name, (n_bins, radius), eph_name)
+            avg_val_array.append(avg_val)
+        
+        print()
+        for e in avg_val_array:
+            print(f'{e[1]} = {e[0]}')
+        print()
 
         run_time_t2 = dt.datetime.now()
         delta = run_time_t2 - run_time_t0
