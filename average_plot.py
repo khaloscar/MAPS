@@ -331,49 +331,24 @@ def main():
 
     run_time_t0 = dt.datetime.now()
 
-    #        amda_tree.Parameters.MAVEN.Ephemeris.maven_orb_marsobs1s.mav_xyz_mso1s,
-    #    amda_tree.Parameters.MAVEN.NGIMS.mav_ngims_kp.mav_ngimskp_he
-
-    """     amda_dir = [
-        amda_tree.Parameters.Juno.Ephemeris.orbit_jupiter.juno_ephem_orb1.juno_eph_orb_jso,
-        amda_tree.Parameters.Juno.JADE.L5___electrons.juno_jadel5_elecmom.jade_elecmom_n
-        amda_tree.Parameters.MAVEN.SWIA.mav_swia_kp.mav_swiakp_t,
-        amda_tree.Parameters.MAVEN.SWIA.mavpds_swia_momboard.mav_swia_n
-                amda_tree.Parameters.Cluster.Cluster_4.Ephemeris.clust4_orb_all.c4_xyz_gse,
-        amda_tree.Parameters.Cluster.Cluster_1.Ephemeris.clust1_orb_all.c1_xyz_gse,
-        amda_tree.Parameters.Cluster.Cluster_3.Ephemeris.clust3_orb_all.c3_xyz_gse,
-    ] """
-
     print(f'Initializing directories')
 
-    pos_dir_dir = [
-        #amda_tree.Parameters.Cassini.Ephemeris__Cassini.orbit_saturn.cass_orb_1s.cass_xyz_kso_1s,
-        amda_tree.Parameters.Galileo.Ephemeris___Galileo.gll_orbit_jup.gll_xyz_jso,
-        amda_tree.Parameters.Juno.Ephemeris.orbit_jupiter.juno_ephem_orb1.juno_eph_orb_jso,
-        #amda_tree.Parameters.Cassini.Ephemeris__Cassini.cass_ephem_eqt.cass_xyz_eqt
+    dir_clut4 = [amda_tree.Parameters.Cluster.Cluster_4.Ephemeris.clust4_orb_all.c4_xyz_gse,
+    amda_tree.Parameters.Cluster.Cluster_4.CIS_CODIF.clust4_cis_prp.c4_h_dens,
+    amda_tree.Parameters.Cluster.Cluster_4.CIS_CODIF.clust4_cis_prp.c4_o_dens
     ]
 
-    #pos_dir_dir = [
-    #    amda_tree.Parameters.MVEN.Ephemeris.maven_orb_marsobs1s.mav_xyz_mso1s,
-    #]
-
-
-    dir_clut4 = [
-        amda_tree.Parameters.Cluster.Cluster_4.CIS_CODIF.clust4_cis_prp.c4_h_dens,
-        amda_tree.Parameters.Cluster.Cluster_4.CIS_CODIF.clust4_cis_prp.c4_o_dens
+    dir_clut1 = [amda_tree.Parameters.Cluster.Cluster_1.Ephemeris.clust1_orb_all.c1_xyz_gse,
+    amda_tree.Parameters.Cluster.Cluster_1.CIS_CODIF.clust1_cis_prp.c1_h_dens,
+    amda_tree.Parameters.Cluster.Cluster_1.CIS_CODIF.clust1_cis_prp.c1_o_dens
     ]
 
-    dir_clut1 = [
-        amda_tree.Parameters.Cluster.Cluster_1.CIS_CODIF.clust1_cis_prp.c1_h_dens,
-        amda_tree.Parameters.Cluster.Cluster_1.CIS_CODIF.clust1_cis_prp.c1_o_dens
+    dir_clut3 = [amda_tree.Parameters.Cluster.Cluster_3.Ephemeris.clust3_orb_all.c3_xyz_gse,
+    amda_tree.Parameters.Cluster.Cluster_3.CIS_CODIF.clust3_cis_prp.c3_h_dens,
+    amda_tree.Parameters.Cluster.Cluster_3.CIS_CODIF.clust3_cis_prp.c3_o_dens
     ]
 
-    dir_clut3 = [
-        amda_tree.Parameters.Cluster.Cluster_3.CIS_CODIF.clust3_cis_prp.c3_h_dens,
-        amda_tree.Parameters.Cluster.Cluster_3.CIS_CODIF.clust3_cis_prp.c3_o_dens
-    ]
-
-    dir_juno = [
+    dir_juno = [amda_tree.Parameters.Juno.Ephemeris.orbit_jupiter.juno_ephem_orb1.juno_eph_orb_jso,
         amda_tree.Parameters.Juno.JADE.L5___electrons.juno_jadel5_elecmom.jade_elecmom_n,
         amda_tree.Parameters.Juno.JADE.L5___electrons.juno_jadel5_elecmom.jade_elecmom_p,
         amda_tree.Parameters.Juno.JADE.L5___electrons.juno_jadel5_elecmom.jade_elecmom_t,
@@ -381,12 +356,12 @@ def main():
         amda_tree.Parameters.Juno.FGM.orbit_jupiter.juno_fgm_orb60.juno_fgm_orb60_mag,
     ]
 
-    dir_cassini = [
+    dir_cassini_saturn = [amda_tree.Parameters.Cassini.Ephemeris__Cassini.orbit_saturn.cass_orb_1s.cass_xyz_kso_1s,
         amda_tree.Parameters.Cassini.MAG.orbit_saturn.cass_mag_orb1.cass_bmag_orb1s,
         amda_tree.Parameters.Cassini.RPWS.cass_fpe_sat.cass_sat_ne,
     ]
 
-    dir_cassini_jup = [
+    dir_cassini_jup = [amda_tree.Parameters.Cassini.Ephemeris__Cassini.cass_ephem_eqt.cass_xyz_eqt,
         amda_tree.Parameters.Cassini.RPWS.cass_fpe_jup.cass_jup_ne,
         amda_tree.Parameters.Cassini.MAG.cass_mag_jup.cass_bmag_jup,
         amda_tree.Parameters.Cassini.CAPS.cass_caps_elemo.cass_caps_e_n,
@@ -394,7 +369,7 @@ def main():
 
     ]
 
-    dir_galileo = [
+    dir_galileo = [amda_tree.Parameters.Galileo.Ephemeris___Galileo.gll_orbit_jup.gll_xyz_jso,
         amda_tree.Parameters.Galileo.MAG.gll_mag_msreal.gmmr_magnitude,
         amda_tree.Parameters.Galileo.PLS.gll_pls_mom.gll_pls_momdens,
         amda_tree.Parameters.Galileo.PLS.gll_pls_mom.gll_pls_momtemp,
@@ -406,29 +381,24 @@ def main():
         #amda_tree.Parameters.Galileo.Jovian_Magnetic_Field_Models.gll_jrm33_model.b_jrm33_con_tot_60_1_gll_xyz_iau
     ]
 
-    dir_maven = [amda_tree.Parameters.MAVEN.SWIA.mav_swia_kp.mav_swiakp_n]
-    #amda_dir_dir = [dir_cassini, dir_galileo, dir_juno, dir_cassini_jup]
-    amda_dir_dir = [dir_galileo, dir_juno] 
-    #amda_dir_dir = [dir_maven]
+    dir_maven = [amda_tree.Parameters.MAVEN.Ephemeris.maven_orb_marsobs1s.mav_xyz_mso1s,
+        amda_tree.Parameters.MAVEN.SWIA.mav_swia_kp.mav_swiakp_n
+    ]
+
+    amda_dirs = [dir_galileo]
 
 
-    for indxx, pos_dir in enumerate(pos_dir_dir):
-        #pos_dir = amda_tree.Parameters.Cluster.Cluster_4.Ephemeris.clust4_orb_all.c4_xyz_gse
-        """         amda_dir = [
-            amda_tree.Parameters.Cluster.Cluster_4.CIS_CODIF.clust4_cis_prp.c4_h_dens,
-            amda_tree.Parameters.Cluster.Cluster_4.CIS_CODIF.clust4_cis_prp.c4_o_dens
-        ] """
-        print('Initialization complete')
-        amda_dir = amda_dir_dir[indxx]
+    for dir in amda_dirs:
+        pos_dir = dir.pop(0)
 
-        for dir in amda_dir:
-            print(f'Collecting {dir.xmlid}')
-            species = dir.name
+        for param_dir in dir:
+            print(f'Collecting {param_dir.xmlid}')
+            species = param_dir.name
             now = dt.datetime.now()
-            start_date, stop_date = amddh.retrieve_restrictive_time_boundaries([pos_dir, dir])
+            start_date, stop_date = amddh.retrieve_restrictive_time_boundaries([pos_dir, param_dir])
 
             eph_name = pos_dir.xmlid
-            filepath_name = dir.xmlid
+            filepath_name = param_dir.xmlid
             filepath_plot = 'Plots'
             filepath_data = 'Data'
             filepath = 'Saved/'
@@ -492,10 +462,13 @@ def main():
                         pos_dens_df = amddh.load_parquet(f'{filepath_data}/chunk_({iterations}).parquet')
                     else:
                         sc_pos = spz.get_data(pos_dir, t0, t1).to_dataframe()
-                        if dir.xmlid == 'gll_pls_fitv':
+                        if param_dir.xmlid == 'gll_pls_fitv':
                             species = 'v'
-                            temp  = spz.get_data(dir, t0, t1).to_dataframe()
+                            temp  = spz.get_data(param_dir, t0, t1).to_dataframe()
                             dens = pd.DataFrame({species: np.sqrt(temp['vr']**2 + temp['vth']**2 + temp['vph']**2)})
+                        else: 
+                            dens = spz.get_data(param_dir, t0, t1).to_dataframe()
+                    
                         dens = clean_dataframe(dens, species)
 
                         print('Merging frames')
@@ -508,7 +481,7 @@ def main():
                     # Spara denna bitch? Dvs, spara i chunks som förut..., men behåll chunksen?
 
                     print(f'Summing histogram data')
-                    if dir.xmlid == 'gll_pls_fitv':
+                    if param_dir.xmlid == 'gll_pls_fitv':
                         species = 'v'
                     hist_xyz_nrmeas, hist_xyz_dens = sum_histogram_data(hist_xyz_nrmeas,
                                                                         hist_xyz_dens,
