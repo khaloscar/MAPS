@@ -186,7 +186,7 @@ def save_info(iterations, filepath):
         iterations)
     
 def load_info(filepath):
-    info = np.load(filepath+'info.npz')
+    info = np.load(filepath+'/info.npz')
     iterations = info['iterations']
     return iterations
 
