@@ -168,11 +168,13 @@ def time_range_generator(start_date, stop_date):
     print(f'Time boundaries: \n{yrs}')
     return yrs
 
-def save_histogram(hist_nrmeas, hist_den, edges, filename):
+def save_histogram(hist_nrmeas, hist_den, hist_xr_nrmeas, hist_xr_dens, edges, filename):
     np.savez_compressed(
     f'{filename}.npz',
     hist_nrmeas=hist_nrmeas,
     hist_den=hist_den,
+    hist_xr_nrmeas=hist_xr_nrmeas,
+    hist_xr_dens=hist_xr_dens,
     xedges=edges[0],
     yedges=edges[1],
     zedges=edges[2],
@@ -194,12 +196,14 @@ def load_histogram(filename):
     data = np.load(f'{filename}.npz')
     hist_nrmeas = data['hist_nrmeas']
     hist_den = data['hist_den']
+    hist_xr_nrmeas = data['hist_xr_nrmeas']
+    hist_xr_dens = data['hist_xr_dens']
     edges = (
     data['xedges'],
     data['yedges'],
     data['zedges'],
     data['redges'])
-    return hist_nrmeas, hist_den, edges
+    return hist_nrmeas, hist_den, hist_xr_nrmeas, hist_xr_dens, edges
 
 def main():
 

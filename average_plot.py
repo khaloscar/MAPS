@@ -68,8 +68,8 @@ def parameter_to_histogram(dataframe, parameter):
         print()
 
 def sum_histogram_data(hist_xyz_nrmeas, hist_xyz_den, density, sc_position_ntp, edges):
-    hist_nrmeas, _ = np.histogramdd(sc_position_ntp.values, bins=edges[:-1])
-    hist_den, _ = np.histogramdd(sc_position_ntp.values, bins=edges[:-1], weights=density.values)
+    hist_nrmeas, _ = np.histogramdd(sc_position_ntp.values, bins=edges)
+    hist_den, _ = np.histogramdd(sc_position_ntp.values, bins=edges, weights=density.values)
     hist_xyz_nrmeas += hist_nrmeas
     hist_xyz_den += hist_den
     return hist_xyz_nrmeas, hist_xyz_den
@@ -103,7 +103,7 @@ def clean_dataframe(dataframe, parameter):
     dataframe = dataframe[dataframe[parameter].notna() & (dataframe[parameter] != 0)]
     return dataframe
 
-def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename, filepath_name, info, eph_name):
+def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, hist_xr_nrmeas, hist_xr_dens, species, edges, filename, filepath_name, info, eph_name, times):
 
     cmap = plt.cm.inferno
     cmap.set_under(cmap(0))
@@ -112,12 +112,13 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename,
     # Fix average density for each histogram and then extract for plotting
 
     histogram_xyz_average = hist_xyz_den / hist_xyz_nrmeas
+    histogram_xr_average = hist_xr_dens / hist_xr_nrmeas
     print(histogram_xyz_average.shape)
     idx = int(xedges.shape[0] / 2)
     idy = int(yedges.shape[0] / 2)
     idz = int(zedges.shape[0] / 2)
 
-    # Skapa meshgrid av y- och z-edges för att beräkna r
+    """     # Skapa meshgrid av y- och z-edges för att beräkna r
     Yc, Zc = np.meshgrid((yedges[:-1] + yedges[1:]) / 2, (zedges[:-1] + zedges[1:]) / 2, indexing='ij')
     R = np.sqrt(Yc**2 + Zc**2)
 
@@ -143,7 +144,7 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename,
             with np.errstate(invalid='ignore', divide='ignore'):
                 hist_avg = hist_sum / hist_count
             hist_xr[ix, :] = hist_avg
-            hist_xr_nr[ix,:] = hist_count
+            hist_xr_nr[ix,:] = hist_count """
 
    
 
@@ -160,7 +161,7 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename,
     hist_yz = histogram_xyz_average[idx, :, :]
     
 
-    t = 20
+    t = 2
     hist_xy = np.nanmean(histogram_xyz_average[:, :, idz-t:idz+t], axis=2)
     hist_xz = np.nanmean(histogram_xyz_average[:, idy-t:idy+t, :], axis=1)
     hist_yz = np.nanmean(histogram_xyz_average[idx-t:idx+t, :, :], axis=0)
@@ -184,7 +185,7 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename,
         hist_xy[hist_xy > 0],
         hist_xz[hist_xz > 0],
         hist_yz[hist_yz > 0],
-        hist_xr[hist_xr > 0]
+        histogram_xr_average[histogram_xr_average > 0]
     ))
 
     if vals.size == 0:
@@ -211,9 +212,9 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename,
 
 
     ax_xy.pcolormesh(xedges, yedges, hist_xy.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax), shading='auto')
-    ax_xr.pcolormesh(xedges, redges, hist_xr.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax),shading='auto')
+    ax_xr.pcolormesh(xedges, redges, histogram_xr_average.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax),shading='auto')
     ax_xy_nmeas.pcolormesh(xedges, yedges, hist_xy_nmeas.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax), shading='auto')
-    ax_xr_nmeas.pcolormesh(xedges, redges, hist_xr_nr.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax),shading='auto')
+    ax_xr_nmeas.pcolormesh(xedges, redges, hist_xr_nrmeas.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax),shading='auto')
 
 
 
@@ -225,7 +226,7 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename,
     ax_xz.pcolormesh(xedges, zedges, hist_xz.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax),shading='auto')
     ax_yz.pcolormesh(yedges, zedges, hist_yz.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax),shading='auto')
     ax_xr.pcolormesh(xedges[xedge_slice.start+14:-1], redges[2:redge_slice.stop-2], hist_xr.T[2:r_bin_slice.stop-2,x_bin_slice.start+14:-1], cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax),shading='auto') """
-    avgavg = np.nanmean(hist_xr.T[2:r_bin_slice.stop-2,x_bin_slice.start+14:-1])
+    avgavg = np.nanmean(histogram_xr_average.T[2:r_bin_slice.stop-2,x_bin_slice.start+14:-1])
     if filepath_name == 'gll_pls_fitt':
         avgavg = avgavg*11604.5250061657/10**6
         print(f'Avg for {filepath_name}: {avgavg} MK')
@@ -296,7 +297,18 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename,
     # cb.ax.set_yticklabels([timeDt_valid[0].strftime('%H:%M'), timeDt_valid[-1].strftime('%H:%M')])  # vertically oriented colorbar
     cb.set_label('some info')
 
-    plt.suptitle(filepath_name+f' w/ bins {info[0]} and edges {info[1]}')
+    #plt.suptitle(filepath_name+f' w/ bins {info[0]} and edges {info[1]}')
+    start_str = times[0]
+    stop_str = times[1]
+
+    if filepath_name == 'gll_pls_fitn':
+        plt.suptitle(r'Jupiter average proton density [$cm^{-3}$]'+ f' from {start_str} to {stop_str}')
+    if filepath_name == 'gll_pls_fitt':
+        plt.suptitle(r'Jupiter average temperature [$eV$]'+f' from {start_str} to {stop_str}')
+    if filepath_name == 'gll_pls_fitv':
+        plt.suptitle(r'Jupiter average speed  [$km/s$]'+ f' from {start_str} to {stop_str}')
+    if filepath_name == 'gmmr_magnitude':
+        plt.suptitle(r'Jupiter average b-field density [$nT$]'+ f'from {start_str} to {stop_str}')
 
     # Save figure
     fig.savefig(filename, bbox_inches='tight')
@@ -340,7 +352,10 @@ def main():
 
     dir_clut1 = [amda_tree.Parameters.Cluster.Cluster_1.Ephemeris.clust1_orb_all.c1_xyz_gse,
     amda_tree.Parameters.Cluster.Cluster_1.CIS_CODIF.clust1_cis_prp.c1_h_dens,
-    amda_tree.Parameters.Cluster.Cluster_1.CIS_CODIF.clust1_cis_prp.c1_o_dens
+    amda_tree.Parameters.Cluster.Cluster_1.CIS_CODIF.clust1_cis_prp.c1_o_dens,
+    #amda_tree.Parameters.Cluster.Cluster_1.CIS_CODIF.clust1_cis_prp.c1_h_t
+    amda_tree.Parameters.Cluster.Cluster_1.CIS_HIA.clust1_hia_mom.c1_hia_t,
+    amda_tree.Parameters.Cluster.Cluster_1.CIS_HIA.clust1_hia_mom.c1_hia_press
     ]
 
     dir_clut3 = [amda_tree.Parameters.Cluster.Cluster_3.Ephemeris.clust3_orb_all.c3_xyz_gse,
@@ -371,9 +386,6 @@ def main():
 
     dir_galileo = [amda_tree.Parameters.Galileo.Ephemeris___Galileo.gll_orbit_jup.gll_xyz_jso,
         amda_tree.Parameters.Galileo.MAG.gll_mag_msreal.gmmr_magnitude,
-        amda_tree.Parameters.Galileo.PLS.gll_pls_mom.gll_pls_momdens,
-        amda_tree.Parameters.Galileo.PLS.gll_pls_mom.gll_pls_momtemp,
-        amda_tree.Parameters.Galileo.PLS.gll_pls_mom.gll_pls_momvmag,
         amda_tree.Parameters.Galileo.PLS.gll_pls_fit.gll_pls_fitn,
         amda_tree.Parameters.Galileo.PLS.gll_pls_fit.gll_pls_fitt,
         amda_tree.Parameters.Galileo.PLS.gll_pls_fit.gll_pls_fitv,
@@ -388,6 +400,7 @@ def main():
     amda_dirs = [dir_galileo]
 
 
+
     for dir in amda_dirs:
         pos_dir = dir.pop(0)
 
@@ -396,6 +409,7 @@ def main():
             species = param_dir.name
             now = dt.datetime.now()
             start_date, stop_date = amddh.retrieve_restrictive_time_boundaries([pos_dir, param_dir])
+            start_str, stop_str = start_date.strftime("%Y%m%d"), stop_date.strftime("%Y%m%d")
 
             eph_name = pos_dir.xmlid
             filepath_name = param_dir.xmlid
@@ -433,6 +447,8 @@ def main():
             print(f'has shape {pos_dens_df.shape}') """
 
             hist_xyz_nrmeas, hist_xyz_dens = fix_histogram_placeholder(edges_n_bins)
+            hist_xr_nrmeas, hist_xr_dens = fix_histogram_placeholder((xedges.shape[0]-1, redges.shape[0]-1))
+
 
             """     start_date = dt.datetime(2015,1,1)
             stop_date = dt.datetime(2015,10,1)
@@ -460,13 +476,22 @@ def main():
 
                     if os.path.exists(f'{filepath_data}/chunk_({iterations}).parquet'):
                         pos_dens_df = amddh.load_parquet(f'{filepath_data}/chunk_({iterations}).parquet')
+                        if not 'r' in pos_dens_df:
+                            pos_dens_df['r'] = (pos_dens_df['y']**2 + pos_dens_df['z']**2)**0.5
+                            pos_dens_df.to_parquet(f'{filepath_data}/chunk_({iterations}).parquet')
                     else:
                         sc_pos = spz.get_data(pos_dir, t0, t1).to_dataframe()
                         if param_dir.xmlid == 'gll_pls_fitv':
                             species = 'v'
                             temp  = spz.get_data(param_dir, t0, t1).to_dataframe()
                             dens = pd.DataFrame({species: np.sqrt(temp['vr']**2 + temp['vth']**2 + temp['vph']**2)})
-                        else: 
+                
+                        elif param_dir.xmlid == 'c1_h_t':
+                            species = 't'
+                            temp  = spz.get_data(param_dir, t0, t1).to_dataframe()
+                            dens = pd.DataFrame({species: np.sqrt(temp['t_para']**2 + temp['t_perp']**2)})
+                        
+                        else:
                             dens = spz.get_data(param_dir, t0, t1).to_dataframe()
                     
                         dens = clean_dataframe(dens, species)
@@ -476,6 +501,8 @@ def main():
                         print(f'has shape {pos_dens_df.shape}')
 
                         print(f'Save to parquet chunk')
+                        if not 'r' in pos_dens_df:
+                            pos_dens_df['r'] = (pos_dens_df['y']**2 + pos_dens_df['z']**2)**0.5
                         pos_dens_df.to_parquet(f'{filepath_data}/chunk_({iterations}).parquet')
 
                     # Spara denna bitch? Dvs, spara i chunks som förut..., men behåll chunksen?
@@ -483,11 +510,20 @@ def main():
                     print(f'Summing histogram data')
                     if param_dir.xmlid == 'gll_pls_fitv':
                         species = 'v'
+                    elif param_dir.xmlid == 'c1_h_t':
+                        species = 't'
+                    
                     hist_xyz_nrmeas, hist_xyz_dens = sum_histogram_data(hist_xyz_nrmeas,
                                                                         hist_xyz_dens,
                                                                         pos_dens_df[species],
                                                                         pos_dens_df[['x', 'y', 'z']],
-                                                                        edges)
+                                                                        (xedges,yedges,zedges))
+                    
+                    hist_xr_nrmeas, hist_xr_dens = sum_histogram_data(hist_xr_nrmeas,
+                                                                      hist_xr_dens,
+                                                                      pos_dens_df[species],
+                                                                      pos_dens_df[['x', 'r']],
+                                                                      (xedges, redges))
                     
 
                     
@@ -498,12 +534,13 @@ def main():
                 #if not os.path.exists(filepath_data+'/full.parquet'):
                 #    amddh.combine_parquet_chunks(filepath_data+'/full',filepath_data+'/')
             
-                amddh.save_histogram(hist_xyz_nrmeas, hist_xyz_dens, edges, filename_histogram)
+                amddh.save_histogram(hist_xyz_nrmeas, hist_xyz_dens, hist_xr_nrmeas, hist_xr_dens, edges, filename_histogram)
 
             
 
             print(f'loading histogram')
-            hist_xyz_nrmeas, hist_xyz_dens, edges = amddh.load_histogram(filename_histogram)
+            print(f'{filename_histogram}')
+            hist_xyz_nrmeas, hist_xyz_dens, hist_xr_nrmeas, hist_xr_dens, edges = amddh.load_histogram(filename_histogram)
 
             #pos_dens_df = amddh.load_parquet(f'{filepath_data}/full.parquet')
             #hist_xyz_nrmeas, hist_xyz_dens = sum_histogram_data(hist_xyz_nrmeas,
@@ -513,7 +550,7 @@ def main():
             #                                                            edges)
 
             print(f'plotting histogram')
-            avg_val = plot_histogram_data(hist_xyz_nrmeas, hist_xyz_dens, species, edges, filename_plot, filepath_name, (n_bins, radius), eph_name)
+            avg_val = plot_histogram_data(hist_xyz_nrmeas, hist_xyz_dens, hist_xr_nrmeas, hist_xr_dens, species, edges, filename_plot, filepath_name, (n_bins, radius), eph_name, (start_str, stop_str))
             avg_val_array.append(avg_val)
         
         print()

@@ -46,7 +46,16 @@ dir_juno = [amda_tree.Parameters.Juno.Ephemeris.orbit_jupiter.juno_ephem_orb1.ju
     amda_tree.Parameters.Juno.FGM.orbit_jupiter.juno_fgm_orb60.juno_fgm_orb60_mag,
 ]
 
-amda_dirs = [dir_clut4, dir_clut1, dir_clut3, dir_juno]
+dir_galileo = [amda_tree.Parameters.Galileo.Ephemeris___Galileo.gll_orbit_jup.gll_xyz_jso,
+    amda_tree.Parameters.Galileo.MAG.gll_mag_msreal.gmmr_magnitude,
+    amda_tree.Parameters.Galileo.PLS.gll_pls_fit.gll_pls_fitn,
+    amda_tree.Parameters.Galileo.PLS.gll_pls_fit.gll_pls_fitt,
+    amda_tree.Parameters.Galileo.PLS.gll_pls_fit.gll_pls_fitv,
+    #amda_tree.Parameters.Galileo.Jovian_Magnetic_Field_Models.gll_jrm09_model.b_jrm09_can_tot_60_1_gll_xyz_iau,
+    #amda_tree.Parameters.Galileo.Jovian_Magnetic_Field_Models.gll_jrm33_model.b_jrm33_con_tot_60_1_gll_xyz_iau
+]
+
+amda_dirs = [dir_galileo, dir_clut4, dir_clut1, dir_clut3, dir_juno]
 
 for dir in amda_dirs:
     pos_dir = dir.pop(0)
@@ -104,6 +113,8 @@ for dir in amda_dirs:
                 print('NO PARQUET TO SHOW')
                 print('NO PARQUET TO SHOW')
                 print('NO PARQUET TO SHOW')
+            
+            pos_dens_df.to_parquet(f'{filepath_data}/chunk_({iterations}).parquet')
 
             t0 = t1
             t1 += time_delta
