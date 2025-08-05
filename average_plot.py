@@ -238,15 +238,15 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename,
 
 
 
-    ax_xy.set_xlabel(r'$JSO\ X\ [\mathrm{R_J}]$')
-    ax_xy_nmeas.set_xlabel(r'$JSO\ X\ [\mathrm{R_J}]$')
-    ax_xr_nmeas.set_xlabel(r'$JSO\ X\ [\mathrm{R_J}]$')
-    ax_xr.set_xlabel(r'$JSO\ X\ [\mathrm{R_J}]$')
+    ax_xy.set_xlabel(r'$GSE\ X\ [\mathrm{R_E}]$')
+    ax_xy_nmeas.set_xlabel(r'$GSE\ X\ [\mathrm{R_E}]$')
+    ax_xr_nmeas.set_xlabel(r'$GSE\ X\ [\mathrm{R_E}]$')
+    ax_xr.set_xlabel(r'$GSE\ X\ [\mathrm{R_E    }]$')
 
-    ax_xy.set_ylabel(r'$JSO\ Y\ [\mathrm{R_J}]$')
-    ax_xy_nmeas.set_ylabel(r'$JSO\ Y\ [\mathrm{R_J}]$')
-    ax_xr_nmeas.set_ylabel(r'$JSO\ R\ [\mathrm{R_J}]$')
-    ax_xr.set_ylabel(r'$JSO\ R\ [\mathrm{R_J}]$')
+    ax_xy.set_ylabel(r'$GSE\ Y\ [\mathrm{R_E}]$')
+    ax_xy_nmeas.set_ylabel(r'$GSE\ Y\ [\mathrm{R_E}]$')
+    ax_xr_nmeas.set_ylabel(r'$GSE\ R\ [\mathrm{R_E}]$')
+    ax_xr.set_ylabel(r'$GSE\ R\ [\mathrm{R_E}]$')
 
     # Fix the ranges of the orbital plots
     ax_xy.set_xlim(xedges[0], xedges[-1])
@@ -268,6 +268,8 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename,
             hp_planets.add_jupiter_bow_shock_magnetopause_plot(ax, alpha=0.5, labels=True)
         if eph_name == 'cass_xyz_kso_1s':
             hp_planets.add_saturn_bow_shock_magnetopause_plot(ax, alpha=0.5, labels=True)
+        if eph_name == 'c1_xyz_gse' or eph_name == 'c4_xyz_gse':
+            hp_planets.add_earth_bow_shock_magnetopause_plot(ax, alpha=0.5, labels=True)
     
     """ if eph_name == 'juno_eph_orb_jso' or eph_name == 'gll_xyz_jso':
 
@@ -314,7 +316,7 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, species, edges, filename,
 def main():
     
     avg_val_array = []
-    radius = 100
+    radius = 25
     n_bins = 51
     
     # Boundary edges for the bins/grids
@@ -384,8 +386,16 @@ def main():
     dir_maven = [amda_tree.Parameters.MAVEN.Ephemeris.maven_orb_marsobs1s.mav_xyz_mso1s,
         amda_tree.Parameters.MAVEN.SWIA.mav_swia_kp.mav_swiakp_n
     ]
-
-    amda_dirs = [dir_galileo]
+    
+    dir_cluster1 = [amda_tree.Parameters.Cluster.Cluster_1.Ephemeris.clust1_orb_all.c1_xyz_gse, 
+        amda_tree.Parameters.Cluster.Cluster_1.CIS_HIA.clust1_hia_mom.c1_hia_t]
+    
+    dir_cluster4 = [amda_tree.Parameters.Cluster.Cluster_4.Ephemeris.clust4_orb_all.c4_xyz_gse,
+        amda_tree.Parameters.Cluster.Cluster_4.CIS_CODIF.clust4_cis_prp.c4_h_dens,
+        amda_tree.Parameters.Cluster.Cluster_4.CIS_CODIF.clust4_cis_prp.c4_h_vtot,
+        amda_tree.Parameters.Cluster.Cluster_4.FGM.clust4_fgm_prp.c4_btot]
+    
+    amda_dirs = [dir_cluster1, dir_cluster4]
 
 
     for dir in amda_dirs:
