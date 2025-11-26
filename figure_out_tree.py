@@ -12,7 +12,7 @@ import numpy as np
 amda_tree = spz.inventories.tree.amda
 
 print('Printing attributes and values')
-for attribute, value in vars(amda_tree.Parameters.Cluster.Cluster_1.Ephemeris.clust1_orb_all.c1_xyz_gse).items():
+for attribute, value in vars(amda_tree.Parameters.Cluster.Cluster_1.CIS_HIA.clust1_hia_mom.c1_hia_t).items():
     print(f"Attribute: {attribute}, Value: {value}")
 print('Initial printing done\nMoving on to imported data...\n\n')
 
