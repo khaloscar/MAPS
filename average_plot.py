@@ -6,13 +6,18 @@ from dateutil.relativedelta import relativedelta
 import os
 from matplotlib import pyplot as plt
 import matplotlib.gridspec as gridspec
+import matplotlib as mpl
 import matplotlib.colors as mcolors
 import numpy as np
 import amda_datahandler as amddh
 import planets as hp_planets
 
 amda_tree = spz.inventories.tree.amda
-
+mpl.rcParams['xtick.labelsize'] = 13     # x-axis tick labels
+mpl.rcParams['ytick.labelsize'] = 13     # y-axis tick labels
+mpl.rcParams['axes.labelsize']   = 15    # x and y axis labels
+mpl.rcParams['axes.titlesize']   = 18    # plot title
+mpl.rcParams['figure.titlesize'] = 18    # figure titel
 
 def fix_histogram_placeholder(edges_n_bins):
     hist_xyz_nrmeas = np.zeros(edges_n_bins)
@@ -70,6 +75,8 @@ def parameter_to_histogram(dataframe, parameter):
 def sum_histogram_data(hist_xyz_nrmeas, hist_xyz_den, density, sc_position_ntp, edges):
     hist_nrmeas, _ = np.histogramdd(sc_position_ntp.values, bins=edges)
     hist_den, _ = np.histogramdd(sc_position_ntp.values, bins=edges, weights=density.values)
+#    hist_xyz_nrmeas = np.nan_to_num(hist_xyz_nrmeas) + np.nan_to_num(hist_nrmeas)
+#    hist_xyz_den += np.nan_to_num(hist_xyz_den) + np.nan_to_num(hist_den)
     hist_xyz_nrmeas += hist_nrmeas
     hist_xyz_den += hist_den
     return hist_xyz_nrmeas, hist_xyz_den
@@ -103,13 +110,25 @@ def clean_dataframe(dataframe, parameter):
     dataframe = dataframe[dataframe[parameter].notna() & (dataframe[parameter] != 0)]
     return dataframe
 
-def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, hist_xr_nrmeas, hist_xr_dens, species, edges, filename, filepath_name, info, eph_name, times):
+def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, hist_xr_nrmeas, hist_xr_dens, species, edges, filename, filepath_name, info, eph_name, times, filepath_plot):
+    """ 
+    if filepath_name == 'gll_pls_fitn':
+        hist_xr_dens = hist_xr_dens/.3
+        hist_xyz_den = hist_xyz_den/.3 """
+
 
     cmap = plt.cm.inferno
     cmap.set_under(cmap(0))
+
+    cmap2 = plt.cm.inferno
+    cmap2.set_under(cmap2(0))
     
     xedges, yedges, zedges, redges = edges[0], edges[1], edges[2], edges[3]
     # Fix average density for each histogram and then extract for plotting
+
+    #sif filepath_name == 'gll_pls_fitt' or filepath_name == 'c1_hia_t':
+    #    hist_xr_dens = hist_xr_dens*11604.5250061657/10**6
+    #    hist_xyz_den = hist_xyz_den*11604.5250061657/10**6
 
     histogram_xyz_average = hist_xyz_den / hist_xyz_nrmeas
     histogram_xr_average = hist_xr_dens / hist_xr_nrmeas
@@ -161,7 +180,7 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, hist_xr_nrmeas, hist_xr_d
     hist_yz = histogram_xyz_average[idx, :, :]
     
 
-    t = 2
+    t = 1
     hist_xy = np.nanmean(histogram_xyz_average[:, :, idz-t:idz+t], axis=2)
     hist_xz = np.nanmean(histogram_xyz_average[:, idy-t:idy+t, :], axis=1)
     hist_yz = np.nanmean(histogram_xyz_average[idx-t:idx+t, :, :], axis=0)
@@ -193,10 +212,40 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, hist_xr_nrmeas, hist_xr_d
         return
     
     cmin, cmax = vals.min(), vals.max()
+    if filepath_name == 'gll_pls_fitn' or filepath_name == 'c4_h_dens':
+        print('This is density')
+        cmin2, cmax2 = 0.1, 10**4
+        cmin, cmax = cmin2, cmax2
+        param = 'density'
+    elif filepath_name == 'gll_pls_fitv' or filepath_name == 'c4_h_vtot':
+        print('This is velocity')
+        cmin2, cmax2 = 20, 4*10**4
+        cmin, cmax = cmin2, cmax2
+        param = 'velocity'
+    elif filepath_name == 'gll_pls_fitt' or filepath_name == 'c1_hia_t':
+        print('This is temp')
+        cmin2, cmax2 = 10, 10**4
+        cmin, cmax = cmin2, cmax2
+        param = 'temperature'
+    elif filepath_name == 'gmmr_magnitude' or filepath_name == 'c4_btot':
+        print('This is magf')
+        cmin2, cmax2 = 3, 2*10**4
+        cmin, cmax = cmin2, cmax2
+        param = 'bfield'
+    else:
+        cmin2, cmax2 = cmin, cmax
+        param = 'haram'
 
     # Plot all the data
     fig = plt.figure(figsize=(14, 10))
-    gs = gridspec.GridSpec(ncols=3, nrows=2, figure=fig, width_ratios=[10, 10, 1])
+    fig2_xy = plt.figure(figsize=(14, 10))
+    fig3_xr = plt.figure(figsize=(14, 10))
+    fig2_xyn = plt.figure(figsize=(14, 10))
+    fig3_xrn = plt.figure(figsize=(14, 10))
+    
+    
+
+    gs = gridspec.GridSpec(ncols=3, nrows=2, figure=fig, width_ratios=[10, 10, 1], wspace=0.3)
 
     """     ax_xy = fig.add_subplot(gs[0, 0])
     ax_xz = fig.add_subplot(gs[1, 0])
@@ -210,6 +259,41 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, hist_xr_nrmeas, hist_xr_d
     ax_xr_nmeas = fig.add_subplot(gs[1, 1])
     ax_cb = fig.add_subplot(gs[:, -1])
 
+    ax2_xy = fig2_xy.add_subplot(1,1,1)
+    ax3_xr = fig3_xr.add_subplot(1,1,1)
+    ax3_xyn = fig2_xyn.add_subplot(1,1,1)
+    ax3_xrn = fig3_xrn.add_subplot(1,1,1)
+
+
+    if True:
+        if filepath_name == 'gll_pls_fitn' or filepath_name == 'c4_h_dens':
+            ax2_xy.set_title(r'Density [$cm^{-3}$]')
+            ax3_xr.set_title(r'Density [$cm^{-3}$]')
+        elif filepath_name == 'gll_pls_fitv' or filepath_name == 'c4_h_vtot':
+            ax2_xy.set_title(r'Speed [$km/s$]')
+            ax3_xr.set_title(r'Speed [$km/s$]')
+        elif filepath_name == 'gll_pls_fitt' or filepath_name == 'c1_hia_t':
+            ax2_xy.set_title(r'Temperture $[eV]$')
+            ax3_xr.set_title(r'Temperture $[eV]$')
+        elif filepath_name == 'gmmr_magnitude' or filepath_name == 'c4_btot':
+            ax2_xy.set_title(r'Magnetic field strength  $[nT]$')
+            ax3_xr.set_title(r'Magnetic field strength  $[nT]$')
+        else:
+            ax2_xy.set_title('??')
+            ax3_xr.set_title('??')
+    else:
+        ax2_xy.set_title('Jupiter')
+        ax3_xr.set_title('Jupiter')
+
+
+
+
+
+    ax2_xy.pcolormesh(xedges, yedges, hist_xy.T, cmap=cmap2, norm=mcolors.LogNorm(vmin=cmin2, vmax=cmax2), shading='auto')
+    ax3_xr.pcolormesh(xedges, redges, histogram_xr_average.T, cmap=cmap2, norm=mcolors.LogNorm(vmin=cmin2, vmax=cmax2),shading='auto')
+    
+
+
 
     ax_xy.pcolormesh(xedges, yedges, hist_xy.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax), shading='auto')
     ax_xr.pcolormesh(xedges, redges, histogram_xr_average.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax),shading='auto')
@@ -222,16 +306,17 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, hist_xr_nrmeas, hist_xr_d
     redge_slice, r_bin_slice = get_middle_idx_slice(len(redges))
     #redge_slice, r_bin_slice = add_thickness(redge_slice, r_bin_slice, thickness=2, direction='up')
     xedge_slice, x_bin_slice = get_middle_idx_slice(len(xedges))
-    """ ax_xy.pcolormesh(xedges, yedges, hist_xy.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax), shading='auto')
-    ax_xz.pcolormesh(xedges, zedges, hist_xz.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax),shading='auto')
-    ax_yz.pcolormesh(yedges, zedges, hist_yz.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax),shading='auto')
-    ax_xr.pcolormesh(xedges[xedge_slice.start+14:-1], redges[2:redge_slice.stop-2], hist_xr.T[2:r_bin_slice.stop-2,x_bin_slice.start+14:-1], cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax),shading='auto') """
-    avgavg = np.nanmean(histogram_xr_average.T[2:r_bin_slice.stop-2,x_bin_slice.start+14:-1])
+    #ax_xy.pcolormesh(xedges, yedges, hist_xy.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax), shading='auto')
+    #ax_xz.pcolormesh(xedges, zedges, hist_xz.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax),shading='auto')
+    #ax_yz.pcolormesh(yedges, zedges, hist_yz.T, cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax),shading='auto')
+    #ax_xr.pcolormesh(xedges[xedge_slice.start+14:-3], redges[2:redge_slice.stop], histogram_xr_average.T[2:r_bin_slice.stop,x_bin_slice.start+14:-3], cmap=cmap, norm=mcolors.LogNorm(vmin=cmin, vmax=cmax),shading='auto')
+    avgavg = np.nanmean(histogram_xr_average.T[2:r_bin_slice.stop,x_bin_slice.start+14:-3])
+    avgavg_nr = np.sum(hist_xr_nrmeas.T[2:r_bin_slice.stop,x_bin_slice.start+14:-3])
     if filepath_name == 'gll_pls_fitt':
-        avgavg = avgavg*11604.5250061657/10**6
-        print(f'Avg for {filepath_name}: {avgavg} MK')
+        avgavg = avgavg
+        print(f'Avg for {filepath_name}: {avgavg} MK | pts: {avgavg_nr}')
     else:
-        print(f'Avg for {filepath_name}: {avgavg}')
+        print(f'Avg for {filepath_name}: {avgavg} | pts: {avgavg_nr}')
     """     hp.add_bow_shock_magnetopause_plot(ax_xy)
     hp.add_bow_shock_magnetopause_plot(ax_xz)
     hp.add_bow_shock_magnetopause_plot_yz(ax_yz)
@@ -239,15 +324,20 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, hist_xr_nrmeas, hist_xr_d
 
 
 
-    ax_xy.set_xlabel(r'$JSO\ X\ [\mathrm{R_J}]$')
-    ax_xy_nmeas.set_xlabel(r'$JSO\ X\ [\mathrm{R_J}]$')
-    ax_xr_nmeas.set_xlabel(r'$JSO\ X\ [\mathrm{R_J}]$')
-    ax_xr.set_xlabel(r'$JSO\ X\ [\mathrm{R_J}]$')
+    ax_xy.set_xlabel(r'$GSE\ X\ [\mathrm{R_E}]$')
+    ax_xy_nmeas.set_xlabel(r'$GSE\ X\ [\mathrm{R_E}]$')
+    ax_xr_nmeas.set_xlabel(r'$GSE\ X\ [\mathrm{R_E}]$')
+    ax_xr.set_xlabel(r'$GSE\ X\ [\mathrm{R_E}]$')
 
-    ax_xy.set_ylabel(r'$JSO\ Y\ [\mathrm{R_J}]$')
-    ax_xy_nmeas.set_ylabel(r'$JSO\ Y\ [\mathrm{R_J}]$')
-    ax_xr_nmeas.set_ylabel(r'$JSO\ R\ [\mathrm{R_J}]$')
-    ax_xr.set_ylabel(r'$JSO\ R\ [\mathrm{R_J}]$')
+    ax_xy.set_ylabel(r'$GSE\ Y\ [\mathrm{R_E}]$')
+    ax_xy_nmeas.set_ylabel(r'$GSE\ Y\ [\mathrm{R_E}]$')
+    ax_xr_nmeas.set_ylabel(r'$GSE\ R\ [\mathrm{R_E}]$')
+    ax_xr.set_ylabel(r'$GSE\ R\ [\mathrm{R_E}]$')
+
+    ax2_xy.set_xlabel(r'$GSE\ X\ [\mathrm{R_E}]$')
+    ax3_xr.set_xlabel(r'$GSE\ X\ [\mathrm{R_E}]$')
+    ax2_xy.set_ylabel(r'$GSE\ Y\ [\mathrm{R_E}]$')
+    ax3_xr.set_ylabel(r'$GSE\ R\ [\mathrm{R_E}]$')
 
     # Fix the ranges of the orbital plots
     ax_xy.set_xlim(xedges[0], xedges[-1])
@@ -262,13 +352,21 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, hist_xr_nrmeas, hist_xr_d
     ax_xr.set_xlim(xedges[0], xedges[-1])
     ax_xr.set_ylim(redges[0], redges[-1])
 
+    ax2_xy.set_xlim(xedges[0], xedges[-1])
+    ax2_xy.set_ylim(yedges[0], yedges[-1])
+    ax3_xr.set_xlim(-25, 25)
+    ax3_xr.set_ylim(0, 25)
+
     print(f'Filepath name: {eph_name}')
-    for ax in [ax_xy, ax_xy_nmeas,ax_xr_nmeas, ax_xr]:  # , ax_xr
+    for ax in [ax_xy, ax_xy_nmeas,ax_xr_nmeas, ax_xr, ax2_xy, ax3_xr]:  # , ax_xr
         ax.set_aspect('equal')
         if eph_name == 'juno_eph_orb_jso' or eph_name == 'gll_xyz_jso':
             hp_planets.add_jupiter_bow_shock_magnetopause_plot(ax, alpha=0.5, labels=True)
         if eph_name == 'cass_xyz_kso_1s':
             hp_planets.add_saturn_bow_shock_magnetopause_plot(ax, alpha=0.5, labels=True)
+        if eph_name == 'c1_xyz_gse' or eph_name == 'c4_xyz_gse':
+            hp_planets.add_earth_bow_shock_magnetopause_plot(ax, alpha=1, labels=True)
+
     
     """ if eph_name == 'juno_eph_orb_jso' or eph_name == 'gll_xyz_jso':
 
@@ -295,25 +393,87 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, hist_xr_nrmeas, hist_xr_d
     sm.set_array([])
     cb = plt.colorbar(sm, cax=ax_cb, orientation='vertical')
     # cb.ax.set_yticklabels([timeDt_valid[0].strftime('%H:%M'), timeDt_valid[-1].strftime('%H:%M')])  # vertically oriented colorbar
-    cb.set_label('some info')
+    # cb.set_label('some info')
 
     #plt.suptitle(filepath_name+f' w/ bins {info[0]} and edges {info[1]}')
     start_str = times[0]
     stop_str = times[1]
 
     if filepath_name == 'gll_pls_fitn':
-        plt.suptitle(r'Jupiter average proton density [$cm^{-3}$]'+ f' from {start_str} to {stop_str}')
+        #plt.suptitle(r'Jupiter average proton density [$cm^{-3}$]'+ f' from {start_str} to {stop_str}')
+        ax_xy.set_title(r'Density [$cm^{-3}$]')
+        ax_xr.set_title(r'Density [$cm^{-3}$]')
+        ax_xy_nmeas.set_title('Number of data points')
+        ax_xr_nmeas.set_title('Number of data points')
+        fig.savefig(filepath_plot+f'/Jupiter_density_gridplot.png', bbox_inches='tight', pad_inches=0)
+
+    if filepath_name == 'c4_h_dens':
+        #plt.suptitle(r'Jupiter average proton density [$cm^{-3}$]'+ f' from {start_str} to {stop_str}')
+        ax_xy.set_title(r'Density [$cm^{-3}$]')
+        ax_xr.set_title(r'Density [$cm^{-3}$]')
+        ax_xy_nmeas.set_title('Number of data points')
+        ax_xr_nmeas.set_title('Number of data points')
+        fig.savefig(filepath_plot+f'/Earth_density_gridplot.png', bbox_inches='tight', pad_inches=0)
+
+
+
     if filepath_name == 'gll_pls_fitt':
-        plt.suptitle(r'Jupiter average temperature [$eV$]'+f' from {start_str} to {stop_str}')
+        #plt.suptitle(r'Jupiter average temperature [$eV$]'+f' from {start_str} to {stop_str}')
+        ax_xy.set_title(r'Temperature $[MK]$')
+        ax_xr.set_title(r'Temperture $[MK]$')
+        ax_xy_nmeas.set_title('Number of data points')
+        ax_xr_nmeas.set_title('Number of data points')
+        fig.savefig(filepath_plot+f'/Jupiter_temperature_gridplot.png', bbox_inches='tight', pad_inches=0)
+    
+    if filepath_name == 'c1_hia_t':
+        ax_xy.set_title(r'Temperature $[eV]$')
+        ax_xr.set_title(r'Temperture $[eV]$')
+        ax_xy_nmeas.set_title('Number of data points')
+        ax_xr_nmeas.set_title('Number of data points')
+        fig.savefig(filepath_plot+f'/Earth_temperature_gridplot.png', bbox_inches='tight', pad_inches=0)
+
+    
     if filepath_name == 'gll_pls_fitv':
-        plt.suptitle(r'Jupiter average speed  [$km/s$]'+ f' from {start_str} to {stop_str}')
+        #plt.suptitle(r'Jupiter average speed  [$km/s$]'+ f' from {start_str} to {stop_str}')
+        ax_xy.set_title(r'Speed [$km/s$]')
+        ax_xr.set_title(r'Speed [$km/s$]')
+        ax_xy_nmeas.set_title('Number of data points')
+        ax_xr_nmeas.set_title('Number of data points')
+        fig.savefig(filepath_plot+f'/Jupiter_speed_gridplot.png', bbox_inches='tight', pad_inches=0)
+
+    if filepath_name == 'c4_h_vtot':
+        #plt.suptitle(r'Jupiter average speed  [$km/s$]'+ f' from {start_str} to {stop_str}')
+        ax_xy.set_title(r'Speed [$km/s$]')
+        ax_xr.set_title(r'Speed [$km/s$]')
+        ax_xy_nmeas.set_title('Number of data points')
+        ax_xr_nmeas.set_title('Number of data points')
+        fig.savefig(filepath_plot+f'/Earth_speed_gridplot.png', bbox_inches='tight', pad_inches=0)
+
+
     if filepath_name == 'gmmr_magnitude':
-        plt.suptitle(r'Jupiter average b-field density [$nT$]'+ f'from {start_str} to {stop_str}')
+        #plt.suptitle(r'Jupiter average b-field density [$nT$]'+ f'from {start_str} to {stop_str}')
+        ax_xy.set_title(r'Magnetic field strength $[nT]$')
+        ax_xr.set_title(r'Magnetic field strength  $[nT]$')
+        ax_xy_nmeas.set_title('Number of data points')
+        ax_xr_nmeas.set_title('Number of data points')
+        fig.savefig(filepath_plot+f'/Jupiter_bfield_gridplot.png', bbox_inches='tight', pad_inches=0)
+
+    if filepath_name == 'c4_btot':
+        #plt.suptitle(r'Jupiter average b-field density [$nT$]'+ f'from {start_str} to {stop_str}')
+        ax_xy.set_title(r'Magnetic field strength $[nT]$')
+        ax_xr.set_title(r'Magnetic field strength  $[nT]$')
+        ax_xy_nmeas.set_title('Number of data points')
+        ax_xr_nmeas.set_title('Number of data points')
+        fig.savefig(filepath_plot+f'/Earth_bfield_gridplot.png', bbox_inches='tight', pad_inches=0)
+
 
     # Save figure
     fig.savefig(filename, bbox_inches='tight')
+    fig2_xy.savefig(filepath_plot+f'/Earth_{param}_xy.png',bbox_inches='tight', pad_inches=0)
+    fig3_xr.savefig(filepath_plot+f'/Earth_{param}_xr.png',bbox_inches='tight', pad_inches=0)
+
     plt.close('all')
-    return (avgavg, filepath_name)
+    return (avgavg, filepath_name , avgavg_nr)
 
 
 # Basic logic 
@@ -326,14 +486,14 @@ def plot_histogram_data(hist_xyz_nrmeas, hist_xyz_den, hist_xr_nrmeas, hist_xr_d
 def main():
     
     avg_val_array = []
-    radius = 100
+    radius = 25
     n_bins = 51
     
     # Boundary edges for the bins/grids
     xedges = np.linspace(-radius,radius,n_bins)
     yedges = np.linspace(-radius,radius,n_bins)
     zedges = np.linspace(-radius,radius,n_bins)
-    redges = np.linspace(0,radius,n_bins)
+    redges = np.linspace(0,radius,n_bins//2+1)
     edges = (xedges, yedges, zedges, redges)
     edges_n_bins = (
                 xedges.shape[0]-1,
@@ -346,16 +506,13 @@ def main():
     print(f'Initializing directories')
 
     dir_clut4 = [amda_tree.Parameters.Cluster.Cluster_4.Ephemeris.clust4_orb_all.c4_xyz_gse,
-    amda_tree.Parameters.Cluster.Cluster_4.CIS_CODIF.clust4_cis_prp.c4_h_dens,
-    amda_tree.Parameters.Cluster.Cluster_4.CIS_CODIF.clust4_cis_prp.c4_o_dens
+        amda_tree.Parameters.Cluster.Cluster_4.CIS_CODIF.clust4_cis_prp.c4_h_dens,
+        amda_tree.Parameters.Cluster.Cluster_4.CIS_CODIF.clust4_cis_prp.c4_h_vtot,
+        amda_tree.Parameters.Cluster.Cluster_4.FGM.clust4_fgm_prp.c4_btot
     ]
 
     dir_clut1 = [amda_tree.Parameters.Cluster.Cluster_1.Ephemeris.clust1_orb_all.c1_xyz_gse,
-    amda_tree.Parameters.Cluster.Cluster_1.CIS_CODIF.clust1_cis_prp.c1_h_dens,
-    amda_tree.Parameters.Cluster.Cluster_1.CIS_CODIF.clust1_cis_prp.c1_o_dens,
-    #amda_tree.Parameters.Cluster.Cluster_1.CIS_CODIF.clust1_cis_prp.c1_h_t
-    amda_tree.Parameters.Cluster.Cluster_1.CIS_HIA.clust1_hia_mom.c1_hia_t,
-    amda_tree.Parameters.Cluster.Cluster_1.CIS_HIA.clust1_hia_mom.c1_hia_press
+        amda_tree.Parameters.Cluster.Cluster_1.CIS_HIA.clust1_hia_mom.c1_hia_t,
     ]
 
     dir_clut3 = [amda_tree.Parameters.Cluster.Cluster_3.Ephemeris.clust3_orb_all.c3_xyz_gse,
@@ -397,7 +554,7 @@ def main():
         amda_tree.Parameters.MAVEN.SWIA.mav_swia_kp.mav_swiakp_n
     ]
 
-    amda_dirs = [dir_galileo]
+    amda_dirs = [dir_clut1, dir_clut4]
 
 
 
@@ -550,12 +707,12 @@ def main():
             #                                                            edges)
 
             print(f'plotting histogram')
-            avg_val = plot_histogram_data(hist_xyz_nrmeas, hist_xyz_dens, hist_xr_nrmeas, hist_xr_dens, species, edges, filename_plot, filepath_name, (n_bins, radius), eph_name, (start_str, stop_str))
+            avg_val = plot_histogram_data(hist_xyz_nrmeas, hist_xyz_dens, hist_xr_nrmeas, hist_xr_dens, species, edges, filename_plot, filepath_name, (n_bins, radius), eph_name, (start_str, stop_str), filepath_plot)
             avg_val_array.append(avg_val)
         
         print()
         for e in avg_val_array:
-            print(f'{e[1]} = {e[0]}')
+            print(f'{e[1]} = {e[0]} | pts: {e[2]}')
         print()
 
         run_time_t2 = dt.datetime.now()
